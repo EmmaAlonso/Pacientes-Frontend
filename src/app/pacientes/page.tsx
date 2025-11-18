@@ -56,16 +56,40 @@ function PacientesPage() {
   const patientsPerPage = 10;
   const { user } = useAuth(); // 👈 Obtener datos del usuario logueado
 
-  const fetchPatients = async () => {
+  useEffect(() => {
+    const fetchPatients = async () => {
+      try {
+        setIsLoading(true);
+        let data;
+
+        if (user?.rol === "PACIENTE") {
+          // El paciente solo ve su propio perfil
+          data = [await PatientsApi.getMyData()];
+        } else {
+          // Admin y médico pueden ver todos los pacientes
+          data = await PatientsApi.getAll();
+        }
+
+        setPatients(data);
+      } catch (err) {
+        setError("Error al cargar los datos");
+        console.error("Error fetching data:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPatients();
+  }, [user]);
+
+  const refetchPatients = async () => {
     try {
       setIsLoading(true);
       let data;
 
       if (user?.rol === "PACIENTE") {
-        // El paciente solo ve su propio perfil
         data = [await PatientsApi.getMyData()];
       } else {
-        // Admin y médico pueden ver todos los pacientes
         data = await PatientsApi.getAll();
       }
 
@@ -78,14 +102,10 @@ function PacientesPage() {
     }
   };
 
-  useEffect(() => {
-    fetchPatients();
-  }, [user]);
-
   const handlePatientCreated = () => {
     setIsModalOpen(false);
     toast.success("Paciente guardado correctamente");
-    fetchPatients();
+    refetchPatients();
   };
 
   const handleDelete = async (patient: Patient) => {
@@ -93,7 +113,7 @@ function PacientesPage() {
     try {
       await PatientsApi.delete(patient.id);
       toast.success("Paciente eliminado");
-      fetchPatients();
+      refetchPatients();
     } catch (err) {
       console.error("Error deleting patient:", err);
       toast.error("Error al eliminar el paciente");
@@ -206,16 +226,10 @@ function PacientesPage() {
                     <TableCell>{p.edad ?? "-"}</TableCell>
                     {user?.rol === "ADMIN" && (
                       <TableCell className="text-right space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                        >
+                        <Button variant="ghost" size="sm">
                           Ver
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                        >
+                        <Button variant="outline" size="sm">
                           Editar
                         </Button>
                         <Button
