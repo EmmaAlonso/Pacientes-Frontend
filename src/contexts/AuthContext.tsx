@@ -6,7 +6,7 @@ import { jwtDecode } from "jwt-decode";
 import { useRouter } from "next/navigation";
 
 export interface JwtPayload {
-  sub: number;
+  id: number;
   email: string;
   role: "ADMIN" | "MEDICO" | "PACIENTE";
   nombre: string;
@@ -33,32 +33,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
 
   // ✅ Cargar token guardado
-  useEffect(() => {
-    const savedToken = TokenService.getToken();
-    if (savedToken) {
-      try {
-        const decoded = jwtDecode<JwtPayload>(savedToken);
-        const normalizedUser = {
-          ...decoded,
-          role: (decoded as any).rol || decoded.role,
-        };
-        setUser(normalizedUser);
-        setToken(savedToken);
-      } catch (err) {
-        console.error("Token inválido:", err);
-        TokenService.removeToken();
-      }
+useEffect(() => {
+  const savedToken = TokenService.getToken();
+  if (savedToken) {
+    try {
+      const decoded = jwtDecode<JwtPayload>(savedToken);
+      const normalizedUser: JwtPayload = {
+        ...decoded,
+        role: (decoded as any).rol?.toUpperCase() || (decoded as any).role?.toUpperCase(),
+      };
+      setUser(normalizedUser);
+      setToken(savedToken);
+    } catch (err) {
+      console.error("Token inválido:", err);
+      TokenService.removeToken();
     }
-  }, []);
+  }
+}, []);
 
   // ✅ Login
   const login = (token: string) => {
+    console.log("Logging in with token:", token);
     TokenService.setToken(token);
     const decoded = jwtDecode<JwtPayload>(token);
-    const normalizedUser = {
-      ...decoded,
-      role: (decoded as any).rol || decoded.role,
-    };
+   const rol = (decoded as any).rol || decoded.role;
+
+const normalizedUser: JwtPayload = {
+  ...decoded,
+  role: rol ? rol.toUpperCase() : null,
+};
     setUser(normalizedUser);
     setToken(token);
 
@@ -66,7 +69,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const userRole = normalizedUser.role?.toUpperCase();
     switch (userRole) {
       case "ADMIN":
-        router.replace("/admin/dashboard");
+        router.replace("/admin");
         break;
       case "MEDICO":
         router.replace("/medicos");

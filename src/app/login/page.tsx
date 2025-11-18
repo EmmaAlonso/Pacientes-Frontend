@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { AuthService } from "@/modules/auth/services/auth.service";
-import { TokenService } from "@/lib/services/token.service";
+import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 import { ApiError } from "@/lib/types/error";
 
@@ -16,13 +16,12 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const { login: authLogin, token: authToken } = useAuth();
 
   // Si ya hay token, redirigir al inicio
-  useEffect(() => {
-    if (TokenService.hasToken()) {
-      router.push("/");
-    }
-  }, [router]);
+  // Nota: la redirección tras login la realiza AuthContext.login según el rol.
+  // Quitamos la redirección automática desde esta página para no sobrescribir
+  // la navegación que hace el contexto (router.replace dentro de login()).
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,26 +31,8 @@ export default function LoginPage() {
     try {
       const response = await AuthService.login({ email, password });
 
-      // ✅ Guardamos el token en localStorage (opcional)
-      TokenService.setToken(response.access_token);
-
-      // ✅ Guardamos también el token en cookie (para el middleware)
-      document.cookie = `token=${response.access_token}; path=/; max-age=3600; secure; samesite=strict`;
-
-      // Redirigir según rol
-      switch (response.user.rol?.toUpperCase()) {
-        case "ADMIN":
-          router.push("/admin");
-          break;
-        case "MEDICO":
-          router.push("/medicos");
-          break;
-        case "PACIENTE":
-          router.push("/pacientes");
-          break;
-        default:
-          router.push("/");
-      }
+      // Use the Auth context to set token + user and handle redirect
+      authLogin(response.access_token);
     } catch (err) {
       const error = err as ApiError;
       setError(

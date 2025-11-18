@@ -13,8 +13,11 @@ import { ConsultasApi } from "@/modules/consultas/services/consultas.api";
 import { MedicosApi } from "@/modules/medicos/services/medicos.api";
 import { Cita } from "@/modules/citas/types/cita.types";
 import { Consulta } from "@/modules/consultas/types/consulta.types";
+import { useAuth } from "@/contexts/AuthContext";
+
 
 function MedicoDashboard() {
+  const { user } = useAuth();
   const [medico, setMedico] = useState<Medico | null>(null);
   const [proximasCitas, setProximasCitas] = useState<Cita[]>([]);
   const [consultas, setConsultas] = useState<Consulta[]>([]);
@@ -23,16 +26,15 @@ function MedicoDashboard() {
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [user]);
 
   const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
+      const medicoId = user?.id;
+      if (!medicoId) throw new Error("No se encontró el ID del médico autenticado");
 
-
-      // 1️⃣ Obtener médico logueado (simulado con id=1)
-      const medicoLog = await MedicosApi.getById(1);
-      setMedico(medicoLog);
+      const medicoLog = await MedicosApi.getById(medicoId);
 
       // 2️⃣ Cargar próximas citas del médico
       const todasCitas = await CitasApi.getAll();
