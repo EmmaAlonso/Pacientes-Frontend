@@ -6,9 +6,9 @@ import { jwtDecode } from "jwt-decode";
 import { useRouter } from "next/navigation";
 
 export interface JwtPayload {
-  id: number;
+  sub: number; // Cambiado de "id" a "sub" (estándar JWT)
   email: string;
-  role: "ADMIN" | "MEDICO" | "PACIENTE";
+  rol: "ADMIN" | "MEDICO" | "PACIENTE"; // Cambiado de "role" a "rol" para coincidir con backend
   nombre: string;
   exp: number;
 }
@@ -18,6 +18,7 @@ interface AuthContextType {
   token: string | null;
   login: (token: string) => void;
   logout: () => void;
+  ready: boolean; // indica que ya se intentó cargar el token inicial
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -25,48 +26,49 @@ const AuthContext = createContext<AuthContextType>({
   token: null,
   login: () => {},
   logout: () => {},
+  ready: false,
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<JwtPayload | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  // Inicializar token de forma síncrona para evitar parpadeos / redirecciones prematuras
+  const initialToken =
+    typeof window !== "undefined" ? TokenService.getToken() : null;
+  const [token, setToken] = useState<string | null>(initialToken);
+  const [user, setUser] = useState<JwtPayload | null>(() => {
+    if (initialToken) {
+      try {
+        const decoded = jwtDecode<JwtPayload>(initialToken);
+        if (decoded.exp && decoded.exp * 1000 < Date.now()) {
+          TokenService.removeToken();
+          return null;
+        }
+        return decoded;
+      } catch {
+        TokenService.removeToken();
+        return null;
+      }
+    }
+    return null;
+  });
+  const [ready, setReady] = useState(false);
   const router = useRouter();
 
-  // ✅ Cargar token guardado
-useEffect(() => {
-  const savedToken = TokenService.getToken();
-  if (savedToken) {
-    try {
-      const decoded = jwtDecode<JwtPayload>(savedToken);
-      const normalizedUser: JwtPayload = {
-        ...decoded,
-        role: (decoded as any).rol?.toUpperCase() || (decoded as any).role?.toUpperCase(),
-      };
-      setUser(normalizedUser);
-      setToken(savedToken);
-    } catch (err) {
-      console.error("Token inválido:", err);
-      TokenService.removeToken();
-    }
-  }
-}, []);
+  // Validación diferida si no hubo token inicial (por si aparece luego en hidratación)
+  useEffect(() => {
+    if (!ready) setReady(true);
+  }, [ready]);
 
   // ✅ Login
   const login = (token: string) => {
     console.log("Logging in with token:", token);
     TokenService.setToken(token);
     const decoded = jwtDecode<JwtPayload>(token);
-   const rol = (decoded as any).rol || decoded.role;
 
-const normalizedUser: JwtPayload = {
-  ...decoded,
-  role: rol ? rol.toUpperCase() : null,
-};
-    setUser(normalizedUser);
+    setUser(decoded);
     setToken(token);
 
     // 🚦 Redirección según rol
-    const userRole = normalizedUser.role?.toUpperCase();
+    const userRole = decoded.rol?.toUpperCase();
     switch (userRole) {
       case "ADMIN":
         router.replace("/admin");
@@ -91,7 +93,7 @@ const normalizedUser: JwtPayload = {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
+    <AuthContext.Provider value={{ user, token, login, logout, ready }}>
       {children}
     </AuthContext.Provider>
   );

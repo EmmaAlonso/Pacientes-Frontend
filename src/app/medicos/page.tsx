@@ -15,7 +15,6 @@ import { Cita } from "@/modules/citas/types/cita.types";
 import { Consulta } from "@/modules/consultas/types/consulta.types";
 import { useAuth } from "@/contexts/AuthContext";
 
-
 function MedicoDashboard() {
   const { user } = useAuth();
   const [medico, setMedico] = useState<Medico | null>(null);
@@ -31,25 +30,39 @@ function MedicoDashboard() {
   const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
-      const medicoId = user?.id;
-      if (!medicoId) throw new Error("No se encontró el ID del médico autenticado");
+      const medicoId = user?.sub;
+      if (!medicoId)
+        throw new Error("No se encontró el ID del médico autenticado");
 
       const medicoLog = await MedicosApi.getById(medicoId);
 
       // 2️⃣ Cargar próximas citas del médico
       const todasCitas = await CitasApi.getAll();
-      const citasMedico = todasCitas.filter((c: Cita) => c.medico?.id === medicoLog.id);
+      const citasMedico = todasCitas.filter(
+        (c: Cita) => c.medico?.id === medicoLog.id
+      );
       const futuras = citasMedico
-        .filter((c: Cita) => new Date(c.fechaCita || c.fechaDeseada) >= new Date())
-        .sort((a: Cita, b: Cita) => new Date((a.fechaCita || a.fechaDeseada)).getTime() - new Date((b.fechaCita || b.fechaDeseada)).getTime())
+        .filter(
+          (c: Cita) => new Date(c.fechaCita || c.fechaDeseada) >= new Date()
+        )
+        .sort(
+          (a: Cita, b: Cita) =>
+            new Date(a.fechaCita || a.fechaDeseada).getTime() -
+            new Date(b.fechaCita || b.fechaDeseada).getTime()
+        )
         .slice(0, 5);
       setProximasCitas(futuras);
 
       // 3️⃣ Cargar últimas consultas del médico
       const todasConsultas = await ConsultasApi.getAll();
-      const consultasMedico = todasConsultas.filter((c: Consulta) => c.medico?.id === medicoLog.id);
+      const consultasMedico = todasConsultas.filter(
+        (c: Consulta) => c.medico?.id === medicoLog.id
+      );
       const ultimas = consultasMedico
-        .sort((a: Consulta, b: Consulta) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
+        .sort(
+          (a: Consulta, b: Consulta) =>
+            new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
+        )
         .slice(0, 5);
       setConsultas(ultimas);
 
@@ -97,15 +110,22 @@ function MedicoDashboard() {
           <CardHeader className="flex flex-row items-center justify-between">
             <div className="flex items-center gap-4">
               <Avatar className="h-16 w-16 border-2 border-cyan-500">
-                <AvatarImage src="/images/medico-avatar.png" alt={medico.nombre} />
+                <AvatarImage
+                  src="/images/medico-avatar.png"
+                  alt={medico.nombre}
+                />
                 <AvatarFallback>{medico.nombre.charAt(0)}</AvatarFallback>
               </Avatar>
               <div>
                 <CardTitle className="text-xl font-semibold">
                   Dr. {medico.nombre} {medico.apellidoPaterno}
                 </CardTitle>
-                <p className="text-sm text-gray-700">{medico.especialidad || "Sin especialidad"}</p>
-                <p className="text-xs text-gray-500">Consultorio {medico.consultorio || "-"}</p>
+                <p className="text-sm text-gray-700">
+                  {medico.especialidad || "Sin especialidad"}
+                </p>
+                <p className="text-xs text-gray-500">
+                  Consultorio {medico.consultorio || "-"}
+                </p>
               </div>
             </div>
             <div className="text-right">
@@ -118,10 +138,26 @@ function MedicoDashboard() {
 
         {/* KPIs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard title="Pacientes atendidos" value="32" icon={<Users className="text-blue-500" />} />
-          <KpiCard title="Próximas citas" value={proximasCitas.length} icon={<Calendar className="text-green-500" />} />
-          <KpiCard title="Consultas realizadas" value={consultas.length} icon={<Stethoscope className="text-rose-500" />} />
-          <KpiCard title="Actividad reciente" value={actividad.length} icon={<Activity className="text-purple-500" />} />
+          <KpiCard
+            title="Pacientes atendidos"
+            value="32"
+            icon={<Users className="text-blue-500" />}
+          />
+          <KpiCard
+            title="Próximas citas"
+            value={proximasCitas.length}
+            icon={<Calendar className="text-green-500" />}
+          />
+          <KpiCard
+            title="Consultas realizadas"
+            value={consultas.length}
+            icon={<Stethoscope className="text-rose-500" />}
+          />
+          <KpiCard
+            title="Actividad reciente"
+            value={actividad.length}
+            icon={<Activity className="text-purple-500" />}
+          />
         </div>
 
         {/* PRÓXIMAS CITAS */}
@@ -140,9 +176,14 @@ function MedicoDashboard() {
                     className="flex justify-between p-3 border rounded-md hover:bg-gray-50"
                   >
                     <div>
-                      <p className="font-medium">{c.paciente.nombre} {c.paciente.apellidoPaterno ?? ""} {c.paciente.apellidoMaterno ?? ""}</p>
+                      <p className="font-medium">
+                        {c.paciente.nombre} {c.paciente.apellidoPaterno ?? ""}{" "}
+                        {c.paciente.apellidoMaterno ?? ""}
+                      </p>
                       <p className="text-xs text-gray-500">
-                        {new Date(c.fechaCita || c.fechaDeseada).toLocaleDateString()}
+                        {new Date(
+                          c.fechaCita || c.fechaDeseada
+                        ).toLocaleDateString()}
                       </p>
                     </div>
                     <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-md">
@@ -162,13 +203,19 @@ function MedicoDashboard() {
           </CardHeader>
           <CardContent>
             {consultas.length === 0 ? (
-              <p className="text-gray-500 text-sm">Aún no hay consultas registradas.</p>
+              <p className="text-gray-500 text-sm">
+                Aún no hay consultas registradas.
+              </p>
             ) : (
               <ul className="space-y-2">
                 {consultas.map((c) => (
-                  <li key={c.id} className="p-3 border rounded-md hover:bg-gray-50">
+                  <li
+                    key={c.id}
+                    className="p-3 border rounded-md hover:bg-gray-50"
+                  >
                     <p className="font-medium">
-                      {c.paciente.nombre} {c.paciente.apellidoPaterno ?? ""} {c.paciente.apellidoMaterno ?? ""}
+                      {c.paciente.nombre} {c.paciente.apellidoPaterno ?? ""}{" "}
+                      {c.paciente.apellidoMaterno ?? ""}
                     </p>
                     <p className="text-sm text-gray-600">{c.diagnostico}</p>
                     <p className="text-xs text-gray-400">
@@ -192,7 +239,10 @@ function MedicoDashboard() {
             ) : (
               <ul className="space-y-2">
                 {actividad.map((a, i) => (
-                  <li key={i} className="text-sm p-2 border rounded-md bg-gray-50">
+                  <li
+                    key={i}
+                    className="text-sm p-2 border rounded-md bg-gray-50"
+                  >
                     {a}
                   </li>
                 ))}
@@ -206,11 +256,21 @@ function MedicoDashboard() {
 }
 
 // Tarjeta de KPI
-function KpiCard({ title, value, icon }: { title: string; value: number | string; icon: React.ReactNode }) {
+function KpiCard({
+  title,
+  value,
+  icon,
+}: {
+  title: string;
+  value: number | string;
+  icon: React.ReactNode;
+}) {
   return (
     <Card>
       <CardHeader className="flex flex-row justify-between items-center pb-2">
-        <CardTitle className="text-sm font-medium text-gray-600">{title}</CardTitle>
+        <CardTitle className="text-sm font-medium text-gray-600">
+          {title}
+        </CardTitle>
         {icon}
       </CardHeader>
       <CardContent>

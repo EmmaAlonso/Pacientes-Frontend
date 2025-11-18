@@ -28,7 +28,8 @@ export class TokenService {
     Cookies.set(this.TOKEN_KEY, clean, {
       expires: 7, // 7 días
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "lax", // más compatible con navegaciones y refresh
+      path: "/", // asegurar disponibilidad en toda la app
     });
   }
 
