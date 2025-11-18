@@ -24,63 +24,63 @@ function MedicoDashboard() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setIsLoading(true);
+        const medicoId = user?.sub;
+        if (!medicoId)
+          throw new Error("No se encontró el ID del médico autenticado");
+
+        const medicoLog = await MedicosApi.getById(medicoId);
+        setMedico(medicoLog);
+
+        // 2️⃣ Cargar próximas citas del médico
+        const todasCitas = await CitasApi.getAll();
+        const citasMedico = todasCitas.filter(
+          (c: Cita) => c.medico?.id === medicoLog.id
+        );
+        const futuras = citasMedico
+          .filter(
+            (c: Cita) => new Date(c.fechaCita || c.fechaDeseada) >= new Date()
+          )
+          .sort(
+            (a: Cita, b: Cita) =>
+              new Date(a.fechaCita || a.fechaDeseada).getTime() -
+              new Date(b.fechaCita || b.fechaDeseada).getTime()
+          )
+          .slice(0, 5);
+        setProximasCitas(futuras);
+
+        // 3️⃣ Cargar últimas consultas del médico
+        const todasConsultas = await ConsultasApi.getAll();
+        const consultasMedico = todasConsultas.filter(
+          (c: Consulta) => c.medico?.id === medicoLog.id
+        );
+        const ultimas = consultasMedico
+          .sort(
+            (a: Consulta, b: Consulta) =>
+              new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
+          )
+          .slice(0, 5);
+        setConsultas(ultimas);
+
+        // 4️⃣ Simular actividad reciente
+        const log: string[] = [
+          "🩺 Nueva consulta registrada con el paciente Ana López",
+          "📅 Se agendó una cita para el 28/10/2025",
+          "👤 Se registró un nuevo paciente: Carlos Méndez",
+          "📋 Actualizaste el diagnóstico de María Pérez",
+        ];
+        setActividad(log);
+      } catch (err) {
+        console.error(err);
+        toast.error("Error al cargar el panel del médico");
+      } finally {
+        setIsLoading(false);
+      }
+    };
     fetchDashboardData();
   }, [user]);
-
-  const fetchDashboardData = async () => {
-    try {
-      setIsLoading(true);
-      const medicoId = user?.sub;
-      if (!medicoId)
-        throw new Error("No se encontró el ID del médico autenticado");
-
-      const medicoLog = await MedicosApi.getById(medicoId);
-
-      // 2️⃣ Cargar próximas citas del médico
-      const todasCitas = await CitasApi.getAll();
-      const citasMedico = todasCitas.filter(
-        (c: Cita) => c.medico?.id === medicoLog.id
-      );
-      const futuras = citasMedico
-        .filter(
-          (c: Cita) => new Date(c.fechaCita || c.fechaDeseada) >= new Date()
-        )
-        .sort(
-          (a: Cita, b: Cita) =>
-            new Date(a.fechaCita || a.fechaDeseada).getTime() -
-            new Date(b.fechaCita || b.fechaDeseada).getTime()
-        )
-        .slice(0, 5);
-      setProximasCitas(futuras);
-
-      // 3️⃣ Cargar últimas consultas del médico
-      const todasConsultas = await ConsultasApi.getAll();
-      const consultasMedico = todasConsultas.filter(
-        (c: Consulta) => c.medico?.id === medicoLog.id
-      );
-      const ultimas = consultasMedico
-        .sort(
-          (a: Consulta, b: Consulta) =>
-            new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
-        )
-        .slice(0, 5);
-      setConsultas(ultimas);
-
-      // 4️⃣ Simular actividad reciente
-      const log: string[] = [
-        "🩺 Nueva consulta registrada con el paciente Ana López",
-        "📅 Se agendó una cita para el 28/10/2025",
-        "👤 Se registró un nuevo paciente: Carlos Méndez",
-        "📋 Actualizaste el diagnóstico de María Pérez",
-      ];
-      setActividad(log);
-    } catch (err) {
-      console.error(err);
-      toast.error("Error al cargar el panel del médico");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   if (isLoading) {
     return (

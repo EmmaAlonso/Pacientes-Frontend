@@ -8,7 +8,7 @@ export function withRoleProtection(
   Component: React.ComponentType,
   allowedRoles: string[]
 ) {
-  return function ProtectedPage(props: any) {
+  return function ProtectedPage(props: React.ComponentProps<typeof Component>) {
     const { token, user, ready } = useAuth();
     const router = useRouter();
     const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);

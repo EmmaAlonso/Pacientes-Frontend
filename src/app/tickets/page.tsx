@@ -8,7 +8,6 @@ import {
   Plus,
   Search,
   Ticket,
-  Users,
   CheckCircle2,
   AlertCircle,
   Clock,

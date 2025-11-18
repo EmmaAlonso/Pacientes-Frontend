@@ -133,7 +133,7 @@ export default function BitacoraPage() {
     }
 
     return filteredLogs;
-  }, [logs, searchQuery, sortConfig]);
+  }, [searchQuery, sortConfig]);
 
   const requestSort = (key: keyof LogEntry) => {
     setSortConfig((currentSort) => ({

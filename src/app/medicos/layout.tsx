@@ -56,6 +56,7 @@ export default function MedicosLayout({ children }: LayoutProps) {
 
       setUserInfo(decoded);
     } catch (error) {
+      console.error(error);
       TokenService.removeToken();
       router.push("/login");
     }
@@ -93,7 +94,7 @@ export default function MedicosLayout({ children }: LayoutProps) {
 
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <img src="/logo.png" className="h-9" />
+            <img src="/logo.png" alt="Logo" className="h-9" />
             <span className="font-semibold text-lg">CECOFAM – Médico</span>
           </div>
 

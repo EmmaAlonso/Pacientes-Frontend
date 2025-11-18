@@ -35,7 +35,6 @@ import { NewCareerForm } from "@/modules/careers/components/NewCareerForm";
 import {
   Pagination,
   PaginationContent,
-  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,

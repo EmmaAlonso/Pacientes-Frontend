@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useRouter } from "next/navigation";
 import { AuthService } from "@/modules/auth/services/auth.service";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
@@ -15,8 +14,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
-  const { login: authLogin, token: authToken } = useAuth();
+  const { login: authLogin } = useAuth();
 
   // Si ya hay token, redirigir al inicio
   // Nota: la redirección tras login la realiza AuthContext.login según el rol.

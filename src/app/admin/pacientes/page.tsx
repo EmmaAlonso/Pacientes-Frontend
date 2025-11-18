@@ -9,7 +9,9 @@ import { Loader2, Plus, Eye, Trash2, Edit } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 
-export default function AdminPacientesPage() {
+import { withRoleProtection } from "@/app/utils/withRoleProtection";
+
+function AdminPacientesPage() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState<number | null>(null);
@@ -25,6 +27,7 @@ export default function AdminPacientesPage() {
       const data = await PatientsApi.getAll();
       setPatients(data);
     } catch (error) {
+      console.error(error);
       toast.error("Error al cargar los pacientes");
     } finally {
       setLoading(false);
@@ -39,6 +42,7 @@ export default function AdminPacientesPage() {
       toast.success("Paciente eliminado correctamente");
       fetchPatients();
     } catch (error) {
+      console.error(error);
       toast.error("Error al eliminar paciente");
     } finally {
       setIsDeleting(null);
@@ -132,3 +136,5 @@ export default function AdminPacientesPage() {
     </div>
   );
 }
+
+export default withRoleProtection(AdminPacientesPage, ["ADMIN"]);

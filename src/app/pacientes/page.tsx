@@ -53,9 +53,6 @@ function PacientesPage() {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isViewOpen, setIsViewOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const patientsPerPage = 10;
   const { user } = useAuth(); // 👈 Obtener datos del usuario logueado
 
@@ -83,23 +80,12 @@ function PacientesPage() {
 
   useEffect(() => {
     fetchPatients();
-  }, []);
+  }, [user]);
 
   const handlePatientCreated = () => {
     setIsModalOpen(false);
-    setIsEditOpen(false);
     toast.success("Paciente guardado correctamente");
     fetchPatients();
-  };
-
-  const handleViewDetails = (patient: Patient) => {
-    setSelectedPatient(patient);
-    setIsViewOpen(true);
-  };
-
-  const handleEdit = (patient: Patient) => {
-    setSelectedPatient(patient);
-    setIsEditOpen(true);
   };
 
   const handleDelete = async (patient: Patient) => {
@@ -223,14 +209,12 @@ function PacientesPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleViewDetails(p)}
                         >
                           Ver
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleEdit(p)}
                         >
                           Editar
                         </Button>

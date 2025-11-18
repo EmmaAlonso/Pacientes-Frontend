@@ -128,7 +128,7 @@ export default function UsuariosPage() {
     }
 
     return result;
-  }, [users, searchQuery, sortField, sortDirection]);
+  }, [searchQuery, sortField, sortDirection]);
 
   const handleSort = (field: keyof User) => {
     if (sortField === field) {

@@ -11,6 +11,9 @@ import { CreateCitaDto } from "../types/cita.types";
 import { showToast } from "@/components/ui/Toast";
 import { ModalConfirm } from "@/components/ui/ModalConfirm";
 
+import { Patient } from "@/modules/patients/types/patient.types";
+import { Medico } from "@/modules/medicos/types/medico.types";
+
 interface NewCitaFormProps {
   onSuccess: () => void;
   onCancel: () => void;
@@ -18,8 +21,8 @@ interface NewCitaFormProps {
 }
 
 export function NewCitaForm({ onSuccess, onCancel, cita }: NewCitaFormProps) {
-  const [patients, setPatients] = useState<any[]>([]);
-  const [medicos, setMedicos] = useState<any[]>([]);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [medicos, setMedicos] = useState<Medico[]>([]);
 
   const [formData, setFormData] = useState<CreateCitaDto>({
     fechaDeseada: "",
@@ -62,7 +65,7 @@ export function NewCitaForm({ onSuccess, onCancel, cita }: NewCitaFormProps) {
     }
   }, [cita]);
 
-  const handleChange = (field: keyof CreateCitaDto, value: any) => {
+  const handleChange = (field: keyof CreateCitaDto, value: string | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 

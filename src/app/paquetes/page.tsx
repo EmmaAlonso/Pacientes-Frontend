@@ -26,7 +26,6 @@ import Layout from "@/components/layout/Layout";
 import {
   Pagination,
   PaginationContent,
-  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
