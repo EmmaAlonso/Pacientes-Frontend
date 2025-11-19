@@ -40,6 +40,6 @@ export function showToast(message: string, type: "success" | "error" | "info" = 
   el.innerHTML = `<div style=\"padding:8px 12px;border-radius:8px;color:white;box-shadow:0 4px 12px rgba(0,0,0,0.1);margin-top:8px;background:${type==='success'? '#16a34a': type==='error' ? '#dc2626' : '#374151'}\">${message}</div>`;
 
   setTimeout(() => {
-    try { unmount(); } catch (e) {}
+    try { unmount(); } catch {}
   }, 3500);
 }

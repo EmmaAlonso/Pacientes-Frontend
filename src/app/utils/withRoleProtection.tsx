@@ -8,21 +8,23 @@ export function withRoleProtection(
   Component: React.ComponentType,
   allowedRoles: string[]
 ) {
-  return function ProtectedPage(props: any) {
-    const { token, user } = useAuth();
+  return function ProtectedPage(props: React.ComponentProps<typeof Component>) {
+    const { token, user, ready } = useAuth();
     const router = useRouter();
     const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
     useEffect(() => {
-      if (!token) {
-        console.log (token)
-        router.replace("/login");
+      // Esperar a que AuthContext termine su carga inicial
+      if (!ready) return;
 
+      // Si después de estar ready no hay token => redirigir
+      if (!token) {
+        router.replace("/login");
         return;
       }
 
       if (user) {
-        const userRole = user.role?.toUpperCase();
+        const userRole = user.rol?.toUpperCase();
         if (allowedRoles.includes(userRole)) {
           setIsAuthorized(true);
         } else {
@@ -30,9 +32,9 @@ export function withRoleProtection(
           setIsAuthorized(false);
         }
       }
-    }, [token, user, router]);
+    }, [ready, token, user, router]);
 
-    if (isAuthorized === null) {
+    if (!ready || isAuthorized === null) {
       return (
         <div className="flex items-center justify-center h-screen">
           <div className="animate-spin h-8 w-8 border-2 border-gray-500 border-t-transparent rounded-full"></div>

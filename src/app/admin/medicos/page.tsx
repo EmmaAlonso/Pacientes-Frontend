@@ -5,14 +5,26 @@ import { toast } from "sonner";
 import { Loader2, Plus, Eye, Edit, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { MedicosApi } from "@/modules/medicos/services/medicos.api";
 import { Medico } from "@/modules/medicos/types/medico.types";
+import { NewMedicoForm } from "@/modules/medicos/components/NewMedicoForm";
 
 export default function AdminMedicosPage() {
   const [medicos, setMedicos] = useState<Medico[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState<number | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedMedico, setSelectedMedico] = useState<Medico | undefined>(
+    undefined
+  );
 
   useEffect(() => {
     fetchMedicos();
@@ -24,6 +36,7 @@ export default function AdminMedicosPage() {
       const data = await MedicosApi.getAll();
       setMedicos(data);
     } catch (error) {
+      console.error(error);
       toast.error("Error al cargar los médicos");
     } finally {
       setLoading(false);
@@ -38,10 +51,26 @@ export default function AdminMedicosPage() {
       toast.success("Médico eliminado correctamente");
       fetchMedicos();
     } catch (error) {
+      console.error(error);
       toast.error("Error al eliminar médico");
     } finally {
       setIsDeleting(null);
     }
+  };
+
+  const handleSuccess = () => {
+    setIsFormOpen(false);
+    fetchMedicos();
+  };
+
+  const handleEdit = (medico: Medico) => {
+    setSelectedMedico(medico);
+    setIsFormOpen(true);
+  };
+
+  const openNewMedicoForm = () => {
+    setSelectedMedico(undefined);
+    setIsFormOpen(true);
   };
 
   if (loading) {
@@ -56,10 +85,26 @@ export default function AdminMedicosPage() {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Gestión de Médicos</h1>
-        <Button className="flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          Nuevo Médico
-        </Button>
+        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+          <DialogTrigger asChild>
+            <Button className="flex items-center gap-2" onClick={openNewMedicoForm}>
+              <Plus className="w-4 h-4" />
+              Nuevo Médico
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {selectedMedico ? "Editar Médico" : "Nuevo Médico"}
+              </DialogTitle>
+            </DialogHeader>
+            <NewMedicoForm
+              onSuccess={handleSuccess}
+              onCancel={() => setIsFormOpen(false)}
+              medico={selectedMedico}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Estadísticas */}
@@ -104,7 +149,7 @@ export default function AdminMedicosPage() {
                           <Eye className="w-4 h-4 mr-1" /> Ver
                         </Button>
                       </Link>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" onClick={() => handleEdit(m)}>
                         <Edit className="w-4 h-4 mr-1" /> Editar
                       </Button>
                       <Button

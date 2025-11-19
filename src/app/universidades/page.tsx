@@ -36,7 +36,6 @@ import { NewUniversityForm } from "@/modules/universities/components/NewUniversi
 import {
   Pagination,
   PaginationContent,
-  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,

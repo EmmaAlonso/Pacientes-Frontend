@@ -11,7 +11,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Users, Building2, GraduationCap, Package } from "lucide-react";
-import Layout from "@/components/layout/Layout";
 
 import { withRoleProtection } from "@/app/utils/withRoleProtection";
 
@@ -46,7 +45,6 @@ export default withRoleProtection(HomePage, ["ADMIN"]);
 
 function HomePage() {
   return (
-    <Layout data-oid="zk9b_cp">
       <div className="space-y-6" data-oid="-6urpd6">
         <div className="flex items-center justify-between" data-oid="5msdczt">
           <div className="w-full text-center" data-oid="vo2jd59">
@@ -220,6 +218,5 @@ function HomePage() {
           </Card>
         </div>
       </div>
-    </Layout>
   );
 }

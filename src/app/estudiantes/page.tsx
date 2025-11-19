@@ -26,7 +26,6 @@ import { NewPatientForm } from "@/modules/patients/components/NewPatientForm";
 import {
   Pagination,
   PaginationContent,
-  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,

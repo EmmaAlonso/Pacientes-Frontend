@@ -17,8 +17,6 @@ import { ModalConfirm } from "@/components/ui/ModalConfirm";
 
 export default function CitasPage() {
 	const [citas, setCitas] = useState<Cita[]>([]);
-	const [isLoading, setIsLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [isViewOpen, setIsViewOpen] = useState(false);
 	const [isEditOpen, setIsEditOpen] = useState(false);
@@ -31,14 +29,10 @@ export default function CitasPage() {
 
 	const fetchCitas = async () => {
 		try {
-			setIsLoading(true);
 			const data = await CitasApi.getAll();
 			setCitas(data);
 		} catch (err) {
-			setError("Error al cargar citas");
 			console.error(err);
-		} finally {
-			setIsLoading(false);
 		}
 	};
 

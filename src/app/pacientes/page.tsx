@@ -35,7 +35,13 @@ import { withRoleProtection } from "@/app/utils/withRoleProtection";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
-type SortField = "nombre" | "email" | "direccion" | "telefono" | "edad" | "ocupacion";
+type SortField =
+  | "nombre"
+  | "email"
+  | "direccion"
+  | "telefono"
+  | "edad"
+  | "ocupacion";
 type SortOrder = "asc" | "desc";
 
 function PacientesPage() {
@@ -47,22 +53,43 @@ function PacientesPage() {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isViewOpen, setIsViewOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const patientsPerPage = 10;
   const { user } = useAuth(); // 👈 Obtener datos del usuario logueado
 
-  const fetchPatients = async () => {
+  useEffect(() => {
+    const fetchPatients = async () => {
+      try {
+        setIsLoading(true);
+        let data;
+
+        if (user?.rol === "PACIENTE") {
+          // El paciente solo ve su propio perfil
+          data = [await PatientsApi.getMyData()];
+        } else {
+          // Admin y médico pueden ver todos los pacientes
+          data = await PatientsApi.getAll();
+        }
+
+        setPatients(data);
+      } catch (err) {
+        setError("Error al cargar los datos");
+        console.error("Error fetching data:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPatients();
+  }, [user]);
+
+  const refetchPatients = async () => {
     try {
       setIsLoading(true);
       let data;
 
-      if (user?.role === "PACIENTE") {
-        // El paciente solo ve su propio perfil
+      if (user?.rol === "PACIENTE") {
         data = [await PatientsApi.getMyData()];
       } else {
-        // Admin y médico pueden ver todos los pacientes
         data = await PatientsApi.getAll();
       }
 
@@ -75,25 +102,10 @@ function PacientesPage() {
     }
   };
 
-  useEffect(() => {
-    fetchPatients();
-  }, []);
-
   const handlePatientCreated = () => {
     setIsModalOpen(false);
-    setIsEditOpen(false);
     toast.success("Paciente guardado correctamente");
-    fetchPatients();
-  };
-
-  const handleViewDetails = (patient: Patient) => {
-    setSelectedPatient(patient);
-    setIsViewOpen(true);
-  };
-
-  const handleEdit = (patient: Patient) => {
-    setSelectedPatient(patient);
-    setIsEditOpen(true);
+    refetchPatients();
   };
 
   const handleDelete = async (patient: Patient) => {
@@ -101,7 +113,7 @@ function PacientesPage() {
     try {
       await PatientsApi.delete(patient.id);
       toast.success("Paciente eliminado");
-      fetchPatients();
+      refetchPatients();
     } catch (err) {
       console.error("Error deleting patient:", err);
       toast.error("Error al eliminar el paciente");
@@ -146,7 +158,7 @@ function PacientesPage() {
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">Pacientes</h1>
 
-          {user?.role === "ADMIN" && (
+          {user?.rol === "ADMIN" && (
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
               <DialogTrigger asChild>
                 <Button>
@@ -189,7 +201,10 @@ function PacientesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead onClick={() => handleSort("nombre")} className="cursor-pointer">
+                  <TableHead
+                    onClick={() => handleSort("nombre")}
+                    className="cursor-pointer"
+                  >
                     <div className="flex items-center">
                       Nombre <ArrowUpDown className="ml-1 h-4 w-4" />
                     </div>
@@ -197,7 +212,9 @@ function PacientesPage() {
                   <TableHead>Email</TableHead>
                   <TableHead>Teléfono</TableHead>
                   <TableHead>Edad</TableHead>
-                  {user?.role === "ADMIN" && <TableHead className="text-right">Acciones</TableHead>}
+                  {user?.rol === "ADMIN" && (
+                    <TableHead className="text-right">Acciones</TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -207,11 +224,21 @@ function PacientesPage() {
                     <TableCell>{p.email}</TableCell>
                     <TableCell>{p.telefono || "-"}</TableCell>
                     <TableCell>{p.edad ?? "-"}</TableCell>
-                    {user?.role === "ADMIN" && (
+                    {user?.rol === "ADMIN" && (
                       <TableCell className="text-right space-x-2">
-                        <Button variant="ghost" size="sm" onClick={() => handleViewDetails(p)}>Ver</Button>
-                        <Button variant="outline" size="sm" onClick={() => handleEdit(p)}>Editar</Button>
-                        <Button variant="destructive" size="sm" onClick={() => handleDelete(p)}>Eliminar</Button>
+                        <Button variant="ghost" size="sm">
+                          Ver
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          Editar
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDelete(p)}
+                        >
+                          Eliminar
+                        </Button>
                       </TableCell>
                     )}
                   </TableRow>
@@ -227,7 +254,9 @@ function PacientesPage() {
               <PaginationItem>
                 <PaginationPrevious
                   href="#"
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.max(prev - 1, 1))
+                  }
                 />
               </PaginationItem>
 
@@ -246,7 +275,9 @@ function PacientesPage() {
               <PaginationItem>
                 <PaginationNext
                   href="#"
-                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                  }
                 />
               </PaginationItem>
             </PaginationContent>
