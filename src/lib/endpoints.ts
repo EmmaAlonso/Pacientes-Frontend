@@ -15,6 +15,7 @@ export const ENDPOINTS = {
   },
   MEDICOS: {
     BASE: "/medicos",
+    ME: "/medicos/me",
   },
   CITAS: {
     BASE: "/citas",

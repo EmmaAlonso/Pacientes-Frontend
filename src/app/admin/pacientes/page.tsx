@@ -1,140 +1,139 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { PatientsApi } from "@/modules/patients/services/patients.api";
 import { Patient } from "@/modules/patients/types/patient.types";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, Eye, Trash2, Edit } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
+import { NewPatientForm } from "@/modules/patients/components/NewPatientForm";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
-import Link from "next/link";
 
-import { withRoleProtection } from "@/app/utils/withRoleProtection";
-
-function AdminPacientesPage() {
+export default function PacientesPage() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isDeleting, setIsDeleting] = useState<number | null>(null);
 
-  // Cargar todos los pacientes
-  useEffect(() => {
-    fetchPatients();
-  }, []);
+  const [openModal, setOpenModal] = useState(false);
+  const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
 
-  const fetchPatients = async () => {
+  // 🔥 cargar pacientes
+  const loadPatients = async () => {
     try {
-      setLoading(true);
       const data = await PatientsApi.getAll();
       setPatients(data);
     } catch (error) {
-      console.error(error);
-      toast.error("Error al cargar los pacientes");
+      toast.error("No se pudo cargar la lista de pacientes");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("¿Seguro que deseas eliminar este paciente?")) return;
-    try {
-      setIsDeleting(id);
-      await PatientsApi.delete(id);
-      toast.success("Paciente eliminado correctamente");
-      fetchPatients();
-    } catch (error) {
-      console.error(error);
-      toast.error("Error al eliminar paciente");
-    } finally {
-      setIsDeleting(null);
-    }
+  useEffect(() => {
+    loadPatients();
+  }, []);
+
+  const handleCreate = () => {
+    setEditingPatient(null);
+    setOpenModal(true);
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
-      </div>
-    );
-  }
+  const handleEdit = (patient: Patient) => {
+    setEditingPatient(patient);
+    setOpenModal(true);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("¿Eliminar este paciente?")) return;
+
+    try {
+      await PatientsApi.delete(id);
+      toast.success("Paciente eliminado");
+      loadPatients();
+    } catch (error) {
+      toast.error("Error al eliminar el paciente");
+    }
+  };
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Gestión de Pacientes</h1>
-        <Button className="flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          Nuevo Paciente
+        <h1 className="text-2xl font-bold">Pacientes</h1>
+        <Button onClick={handleCreate} className="gap-2">
+          <Plus size={18} /> Nuevo Paciente
         </Button>
       </div>
 
-      {/* Estadísticas */}
-      <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
-        <CardHeader>
-          <CardTitle>Total de pacientes registrados</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-3xl font-semibold text-blue-600">{patients.length}</p>
-        </CardContent>
-      </Card>
+      {/* Tabla */}
+      <div className="bg-white rounded-xl shadow p-4">
+        {loading ? (
+          <p className="text-center py-4">Cargando...</p>
+        ) : patients.length === 0 ? (
+          <p className="text-center py-4 text-gray-500">No hay pacientes registrados.</p>
+        ) : (
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b text-left">
+                <th className="p-2">Nombre</th>
+                <th className="p-2">Email</th>
+                <th className="p-2">Edad</th>
+                <th className="p-2">Teléfono</th>
+                <th className="p-2">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {patients.map((p) => (
+                <tr key={p.id} className="border-b hover:bg-gray-50">
+                  <td className="p-2">
+                    {p.nombre} {p.apellidoPaterno} {p.apellidoMaterno}
+                  </td>
+                  <td className="p-2">{p.email}</td>
+                  <td className="p-2">{p.edad ?? "-"}</td>
+                  <td className="p-2">{p.telefono}</td>
 
-      {/* Tabla de pacientes */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Listado de Pacientes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="min-w-full border border-gray-200 text-sm">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-4 py-2 text-left">ID</th>
-                  <th className="px-4 py-2 text-left">Nombre</th>
-                  <th className="px-4 py-2 text-left">Edad</th>
-                  <th className="px-4 py-2 text-left">Correo</th>
-                  <th className="px-4 py-2 text-left">Teléfono</th>
-                  <th className="px-4 py-2 text-left">Acciones</th>
+                  <td className="p-2 flex gap-2">
+                    <Button variant="outline" size="icon" onClick={() => handleEdit(p)}>
+                      <Pencil size={16} />
+                    </Button>
+
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => handleDelete(p.id)}
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {patients.map((p) => (
-                  <tr key={p.id} className="border-t hover:bg-gray-50">
-                    <td className="px-4 py-2">{p.id}</td>
-                    <td className="px-4 py-2">{p.nombre} {(p.apellidoPaterno || '') + (p.apellidoPaterno && p.apellidoMaterno ? ' ' : '') + (p.apellidoMaterno || '')}</td>
-                    <td className="px-4 py-2">{p.edad}</td>
-                    <td className="px-4 py-2">{p.email}</td>
-                    <td className="px-4 py-2">{p.telefono}</td>
-                    <td className="px-4 py-2 flex gap-2">
-                      <Link href={`/admin/pacientes/${p.id}`}>
-                        <Button variant="outline" size="sm">
-                          <Eye className="w-4 h-4 mr-1" /> Ver
-                        </Button>
-                      </Link>
-                      <Button variant="outline" size="sm">
-                        <Edit className="w-4 h-4 mr-1" /> Editar
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(p.id)}
-                        disabled={isDeleting === p.id}
-                      >
-                        {isDeleting === p.id ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="w-4 h-4" />
-                        )}
-                        Eliminar
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Modal */}
+      <Dialog open={openModal} onOpenChange={setOpenModal}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {editingPatient ? "Editar Paciente" : "Nuevo Paciente"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <NewPatientForm
+            patient={editingPatient || undefined}
+            onCancel={() => setOpenModal(false)}
+            onSuccess={() => {
+              setOpenModal(false);
+              loadPatients();
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
-
-export default withRoleProtection(AdminPacientesPage, ["ADMIN"]);

@@ -28,7 +28,34 @@ export class PatientsApi {
   }
 
   static async getMyData(): Promise<Patient> {
-    const { data } = await axiosInstance.get<Patient>(`${ENDPOINTS.PATIENTS.BASE}/me`);
-    return data;
+    // Intenta /api/patients/me, luego /patients/me, luego fallback a /patients/:id
+    try {
+      const { data } = await axiosInstance.get<Patient>(`/api/patients/me`);
+      return data;
+    } catch (err: any) {
+      if (err?.response?.status === 404) {
+        try {
+          const { data } = await axiosInstance.get<Patient>(`/patients/me`);
+          return data;
+        } catch (err2: any) {
+          if (err2?.response?.status === 404) {
+            // Fallback: usar JWT id si está disponible
+            const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+            if (token) {
+              try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                const id = payload.sub || payload.id;
+                if (id) {
+                  const { data } = await axiosInstance.get<Patient>(`/patients/${id}`);
+                  return data;
+                }
+              } catch {}
+            }
+          }
+          throw err2;
+        }
+      }
+      throw err;
+    }
   }
 }

@@ -3,289 +3,228 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, ArrowUpDown } from "lucide-react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import Layout from "@/components/layout/Layout";
+import { Plus, Search, ArrowUpDown, Edit, Save } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PatientsApi } from "@/modules/patients/services/patients.api";
 import { Patient } from "@/modules/patients/types/patient.types";
-import { NewPatientForm } from "@/modules/patients/components/NewPatientForm";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
+import { ConsultasApi } from "@/modules/consultas/services/consultas.api";
+import { CitasApi } from "@/modules/citas/services/citas.api";
+import { Consulta } from "@/modules/consultas/types/consulta.types";
+import { Cita } from "@/modules/citas/types/cita.types";
 import { withRoleProtection } from "@/app/utils/withRoleProtection";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
-type SortField =
-  | "nombre"
-  | "email"
-  | "direccion"
-  | "telefono"
-  | "edad"
-  | "ocupacion";
-type SortOrder = "asc" | "desc";
-
 function PacientesPage() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [sortField, setSortField] = useState<SortField>("nombre");
-  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
-  const [patients, setPatients] = useState<Patient[]>([]);
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const patientsPerPage = 10;
-  const { user } = useAuth(); // 👈 Obtener datos del usuario logueado
+
+  // Datos del paciente autenticado (si aplica)
+  const [patient, setPatient] = useState<Patient | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState<Partial<Patient>>({});
+
+  // Datos clínicos
+  const [citas, setCitas] = useState<Cita[]>([]);
+  const [consultas, setConsultas] = useState<Consulta[]>([]);
 
   useEffect(() => {
-    const fetchPatients = async () => {
+    const load = async () => {
       try {
         setIsLoading(true);
-        let data;
-
         if (user?.rol === "PACIENTE") {
-          // El paciente solo ve su propio perfil
-          data = [await PatientsApi.getMyData()];
-        } else {
-          // Admin y médico pueden ver todos los pacientes
-          data = await PatientsApi.getAll();
-        }
+          let me;
+          try {
+            me = await PatientsApi.getMyData();
+          } catch (err: any) {
+            // Si el backend no expone /patients/me, intentar fallback a GET /patients/:id usando el sub del JWT
+            if (err?.response?.status === 404 && user?.sub) {
+              console.warn("PatientsApi.getMyData returned 404 — falling back to PatientsApi.getById(user.sub)");
+              me = await PatientsApi.getById(user.sub as number);
+            } else {
+              throw err;
+            }
+          }
+          setPatient(me);
+          setFormData(me);
 
-        setPatients(data);
+          // Cargar citas y consultas y filtrar por paciente
+          const allCitas = await CitasApi.getAll();
+          setCitas(allCitas.filter((c) => c.paciente?.id === me.id));
+
+          const allConsultas = await ConsultasApi.getAll();
+          setConsultas(allConsultas.filter((c) => c.paciente?.id === me.id));
+        }
       } catch (err) {
-        setError("Error al cargar los datos");
-        console.error("Error fetching data:", err);
+        console.error("Error al cargar datos del paciente:", err);
+        setError("No se pudieron cargar los datos");
       } finally {
         setIsLoading(false);
       }
     };
-
-    fetchPatients();
+    load();
   }, [user]);
 
-  const refetchPatients = async () => {
+  const handleInputChange = (field: keyof Patient, value: any) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSave = async () => {
+    if (!patient) return;
     try {
-      setIsLoading(true);
-      let data;
-
-      if (user?.rol === "PACIENTE") {
-        data = [await PatientsApi.getMyData()];
-      } else {
-        data = await PatientsApi.getAll();
-      }
-
-      setPatients(data);
+      await PatientsApi.update(patient.id, formData as any);
+      const updated = await PatientsApi.getById(patient.id);
+      setPatient(updated);
+      setIsEditing(false);
+      toast.success("Perfil actualizado");
     } catch (err) {
-      setError("Error al cargar los datos");
-      console.error("Error fetching data:", err);
-    } finally {
-      setIsLoading(false);
+      console.error(err);
+      toast.error("Error al guardar los cambios");
     }
   };
 
-  const handlePatientCreated = () => {
-    setIsModalOpen(false);
-    toast.success("Paciente guardado correctamente");
-    refetchPatients();
-  };
+  if (user?.rol === "PACIENTE") {
+    return (
+      <main className="container mx-auto px-4 py-6">
+        <section className="bg-white rounded-lg shadow p-6 mb-6">
+          <div className="flex items-center gap-6">
+            <Avatar className="h-24 w-24">
+              <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${patient?.nombre}`} />
+              <AvatarFallback>{(patient?.nombre?.charAt(0) || "P").toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <div>
+              <h1 className="text-3xl font-bold">{patient?.nombre} {patient?.apellidoPaterno}</h1>
+              <p className="text-sm text-muted-foreground">{patient?.email}</p>
+              <p className="text-sm text-muted-foreground">{patient?.telefono || "Sin teléfono"}</p>
+            </div>
+            <div className="ml-auto">
+              {!isEditing ? (
+                <Button onClick={() => setIsEditing(true)} className="bg-blue-600 text-white">
+                  <Edit className="w-4 h-4 mr-2" /> Editar perfil
+                </Button>
+              ) : (
+                <div className="flex gap-2">
+                  <Button onClick={handleSave} className="bg-green-600 text-white">
+                    <Save className="w-4 h-4 mr-2" /> Guardar
+                  </Button>
+                  <Button onClick={() => { setIsEditing(false); setFormData(patient || {}); }} variant="ghost">
+                    Cancelar
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
 
-  const handleDelete = async (patient: Patient) => {
-    if (!confirm(`¿Eliminar al paciente ${patient.nombre}?`)) return;
-    try {
-      await PatientsApi.delete(patient.id);
-      toast.success("Paciente eliminado");
-      refetchPatients();
-    } catch (err) {
-      console.error("Error deleting patient:", err);
-      toast.error("Error al eliminar el paciente");
-    }
-  };
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Información Personal</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isEditing ? (
+                <div className="space-y-2">
+                  <Input value={formData.nombre || ""} onChange={(e) => handleInputChange("nombre", e.target.value)} />
+                  <Input value={formData.apellidoPaterno || ""} onChange={(e) => handleInputChange("apellidoPaterno", e.target.value)} />
+                  <Input value={formData.telefono || ""} onChange={(e) => handleInputChange("telefono", e.target.value)} />
+                  <Input value={formData.email || ""} onChange={(e) => handleInputChange("email", e.target.value)} />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p><strong>Nombre:</strong> {patient?.nombre} {patient?.apellidoPaterno}</p>
+                  <p><strong>Email:</strong> {patient?.email}</p>
+                  <p><strong>Teléfono:</strong> {patient?.telefono || "-"}</p>
+                  <p><strong>Edad:</strong> {patient?.edad ?? "-"}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-    } else {
-      setSortField(field);
-      setSortOrder("asc");
-    }
-  };
+          <Card>
+            <CardHeader>
+              <CardTitle>Mis Próximas Citas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {citas.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No hay citas programadas.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {citas.slice(0,5).map((c) => (
+                    <li key={c.id} className="p-2 border rounded-md">
+                      <div className="font-medium">{new Date(c.fechaCita || c.fechaDeseada).toLocaleString()}</div>
+                      <div className="text-sm text-muted-foreground">{c.medico?.nombre}</div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
 
-  const filteredPatients = patients
-    .filter((p) => {
-      const term = searchTerm.toLowerCase();
-      return (
-        p.nombre.toLowerCase().includes(term) ||
-        (p.email || "").toLowerCase().includes(term) ||
-        (p.telefono || "").toLowerCase().includes(term)
-      );
-    })
-    .sort((a, b) => {
-      const aVal = a[sortField] ?? "";
-      const bVal = b[sortField] ?? "";
-      return sortOrder === "asc"
-        ? String(aVal).localeCompare(String(bVal))
-        : String(bVal).localeCompare(String(aVal));
-    });
+          <Card>
+            <CardHeader>
+              <CardTitle>Mis Consultas Recientes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {consultas.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Aún no hay consultas.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {consultas.slice(0,5).map((c) => (
+                    <li key={c.id} className="p-2 border rounded-md">
+                      <div className="font-medium">{new Date(c.fecha).toLocaleDateString()}</div>
+                      <div className="text-sm">{c.diagnostico || c.motivo}</div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </section>
 
-  const totalPages = Math.ceil(filteredPatients.length / patientsPerPage);
-  const currentPatients = filteredPatients.slice(
-    (currentPage - 1) * patientsPerPage,
-    currentPage * patientsPerPage
-  );
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Historial Médico</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Aquí aparecerá tu historial médico (diagnósticos, tratamientos, alergias, etc.).</p>
+              <div className="mt-4">
+                <Button onClick={() => toast("Funcionalidad próximamente disponible")}>Agregar registro</Button>
+              </div>
+            </CardContent>
+          </Card>
 
+          <Card>
+            <CardHeader>
+              <CardTitle>Historial Clínico</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Registros clínicos y notas de consultas.</p>
+              <div className="mt-4">
+                <Button onClick={() => toast("Funcionalidad próximamente disponible")}>Agregar nota clínica</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+      </main>
+    );
+  }
+
+  // Si no es paciente, mostramos el listado (admin/medico)
   return (
-    <Layout>
-      <div className="space-y-6">
+    <div className="space-y-6 container mx-auto px-4 py-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">Pacientes</h1>
 
-          {user?.rol === "ADMIN" && (
-            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" /> Nuevo Paciente
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Registrar Nuevo Paciente</DialogTitle>
-                </DialogHeader>
-                <NewPatientForm
-                  onSuccess={handlePatientCreated}
-                  onCancel={() => setIsModalOpen(false)}
-                />
-              </DialogContent>
-            </Dialog>
-          )}
+          <Button>
+            <Plus className="mr-2 h-4 w-4" /> Nuevo Paciente
+          </Button>
         </div>
-
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar pacientes..."
-              className="pl-8"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {isLoading ? (
-          <div className="flex justify-center py-10">
-            <div className="animate-spin h-8 w-8 border-b-2 border-primary rounded-full" />
-          </div>
-        ) : error ? (
-          <div className="text-red-500 text-center py-6">{error}</div>
-        ) : (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead
-                    onClick={() => handleSort("nombre")}
-                    className="cursor-pointer"
-                  >
-                    <div className="flex items-center">
-                      Nombre <ArrowUpDown className="ml-1 h-4 w-4" />
-                    </div>
-                  </TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Teléfono</TableHead>
-                  <TableHead>Edad</TableHead>
-                  {user?.rol === "ADMIN" && (
-                    <TableHead className="text-right">Acciones</TableHead>
-                  )}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {currentPatients.map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell>{p.nombre}</TableCell>
-                    <TableCell>{p.email}</TableCell>
-                    <TableCell>{p.telefono || "-"}</TableCell>
-                    <TableCell>{p.edad ?? "-"}</TableCell>
-                    {user?.rol === "ADMIN" && (
-                      <TableCell className="text-right space-x-2">
-                        <Button variant="ghost" size="sm">
-                          Ver
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          Editar
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDelete(p)}
-                        >
-                          Eliminar
-                        </Button>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-
-        {totalPages > 1 && (
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  href="#"
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.max(prev - 1, 1))
-                  }
-                />
-              </PaginationItem>
-
-              {[...Array(totalPages)].map((_, index) => (
-                <PaginationItem key={index}>
-                  <PaginationLink
-                    href="#"
-                    isActive={currentPage === index + 1}
-                    onClick={() => setCurrentPage(index + 1)}
-                  >
-                    {index + 1}
-                  </PaginationLink>
-                </PaginationItem>
-              ))}
-
-              <PaginationItem>
-                <PaginationNext
-                  href="#"
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-                  }
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        )}
+        <p className="text-sm text-muted-foreground">La vista de listado está disponible para administradores.</p>
       </div>
-    </Layout>
-  );
+    );
 }
 
 export default withRoleProtection(PacientesPage, ["ADMIN", "PACIENTE"]);

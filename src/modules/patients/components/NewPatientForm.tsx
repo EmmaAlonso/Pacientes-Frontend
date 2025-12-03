@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PatientsApi } from "../services/patients.api";
 import { CreatePatientDto } from "../types/patient.types";
+import { AuthService } from "@/modules/auth/services/auth.service";
+import { toast } from "sonner";
 
 interface NewPatientFormProps {
   onSuccess: () => void;
@@ -25,6 +27,7 @@ export function NewPatientForm({ onSuccess, onCancel, patient }: NewPatientFormP
     ocupacion: "",
   });
 
+  const [password, setPassword] = useState(""); // 🔥 necesario para crear usuario
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,20 +47,43 @@ export function NewPatientForm({ onSuccess, onCancel, patient }: NewPatientFormP
         return;
       }
 
-      // Ensure edad is a number if provided
+      if (!patient && !password) {
+        setError("La contraseña es obligatoria para crear el acceso del paciente.");
+        setIsLoading(false);
+        return;
+      }
+
+      let usuarioId: string | undefined;
+
+      // 🔥 si NO estamos editando, se crea primero el usuario
+      if (!patient) {
+        const signup = await AuthService.signup({
+          nombre: formData.nombre,
+          email: formData.email,
+          password,
+          rol: "PACIENTE",
+        });
+
+        usuarioId = signup.user.id;
+      }
+
       const payload: CreatePatientDto = {
         ...formData,
         edad: formData.edad ? Number(formData.edad) : undefined,
+        ...(usuarioId ? { usuario: { id: usuarioId } } : {}),
       };
 
       if (patient) {
         await PatientsApi.update(patient.id, payload);
+        toast.success("Paciente actualizado");
       } else {
         await PatientsApi.create(payload);
+        toast.success("Paciente creado y usuario generado");
       }
+
       onSuccess();
     } catch (err) {
-      setError("Error al crear el paciente");
+      setError("Error al guardar el paciente");
       console.error("Error creating patient:", err);
     } finally {
       setIsLoading(false);
@@ -79,129 +105,104 @@ export function NewPatientForm({ onSuccess, onCancel, patient }: NewPatientFormP
     }
   }, [patient]);
 
-  const handleDelete = async () => {
-    if (!patient) return;
-    const ok = confirm("¿Estás seguro que deseas eliminar este paciente?");
-    if (!ok) return;
-    setIsLoading(true);
-    try {
-      await PatientsApi.delete(patient.id);
-      onSuccess();
-    } catch (err) {
-      setError("Error al eliminar el paciente");
-      console.error("Error deleting patient:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+
         <div className="space-y-2">
-          <Label htmlFor="nombre">Nombre *</Label>
+          <Label>Nombre *</Label>
           <Input
-            id="nombre"
             value={formData.nombre}
             onChange={(e) => handleInputChange("nombre", e.target.value)}
-            placeholder="Nombre"
             required
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="apellidoPaterno">Apellido Paterno</Label>
+          <Label>Apellido Paterno</Label>
           <Input
-            id="apellidoPaterno"
             value={formData.apellidoPaterno}
             onChange={(e) => handleInputChange("apellidoPaterno", e.target.value)}
-            placeholder="Apellido Paterno"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="apellidoMaterno">Apellido Materno</Label>
+          <Label>Apellido Materno</Label>
           <Input
-            id="apellidoMaterno"
             value={formData.apellidoMaterno}
             onChange={(e) => handleInputChange("apellidoMaterno", e.target.value)}
-            placeholder="Apellido Materno"
           />
-
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="edad">Edad</Label>
+          <Label>Edad</Label>
           <Input
-            id="edad"
             type="number"
             value={formData.edad ?? ""}
-            onChange={(e) => handleInputChange("edad", e.target.value ? Number(e.target.value) : undefined)}
-            placeholder="Edad"
+            onChange={(e) =>
+              handleInputChange("edad", e.target.value ? Number(e.target.value) : undefined)
+            }
           />
         </div>
 
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="direccion">Dirección</Label>
+          <Label>Dirección</Label>
           <Input
-            id="direccion"
             value={formData.direccion}
             onChange={(e) => handleInputChange("direccion", e.target.value)}
-            placeholder="Dirección"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="email">Email *</Label>
+          <Label>Email *</Label>
           <Input
-            id="email"
             type="email"
             value={formData.email}
             onChange={(e) => handleInputChange("email", e.target.value)}
-            placeholder="Correo electrónico"
             required
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="telefono">Teléfono</Label>
+          <Label>Teléfono</Label>
           <Input
-            id="telefono"
             value={formData.telefono}
             onChange={(e) => handleInputChange("telefono", e.target.value)}
-            placeholder="Teléfono"
           />
         </div>
 
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="ocupacion">Ocupación</Label>
+          <Label>Ocupación</Label>
           <Input
-            id="ocupacion"
             value={formData.ocupacion}
             onChange={(e) => handleInputChange("ocupacion", e.target.value)}
-            placeholder="Ocupación"
           />
         </div>
       </div>
 
+      {/* 🔥 Campo SOLO para creación */}
+      {!patient && (
+        <div className="space-y-2">
+          <Label>Contraseña del acceso *</Label>
+          <Input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+      )}
+
       {error && <div className="text-red-500 text-sm">{error}</div>}
 
-      <div className="flex justify-between items-center pt-4">
-        <div>
-          {patient && (
-            <Button type="button" variant="destructive" onClick={handleDelete} disabled={isLoading}>
-              Eliminar
-            </Button>
-          )}
-        </div>
-        <div className="flex justify-end space-x-2">
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancelar
-          </Button>
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? "Guardando..." : patient ? "Guardar cambios" : "Guardar Paciente"}
-          </Button>
-        </div>
+      <div className="flex justify-end space-x-2 pt-4">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancelar
+        </Button>
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? "Guardando..." : patient ? "Guardar Cambios" : "Crear Paciente"}
+        </Button>
       </div>
     </form>
   );

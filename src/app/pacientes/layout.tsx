@@ -13,9 +13,10 @@ import {
   Menu,
   X,
   Home,
-  Users,
   CalendarDays,
-  Stethoscope,
+  FileText,
+  Archive,
+  Heart,
   Bell,
   LogOut,
 } from "lucide-react";
@@ -24,21 +25,20 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
-interface MedicoDecodedToken {
-  rol: string;
+interface DecodedToken {
+  rol?: string;
   nombre?: string;
   email?: string;
-  id?: number;
+  sub?: number;
 }
 
-export default function MedicosLayout({ children }: LayoutProps) {
+export default function PacientesLayout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [userInfo, setUserInfo] = useState<MedicoDecodedToken | null>(null);
+  const [userInfo, setUserInfo] = useState<DecodedToken | null>(null);
 
   const router = useRouter();
   const pathname = usePathname();
 
-  // 🔐 Validación del token
   useEffect(() => {
     const token = TokenService.getToken();
     if (!token) {
@@ -47,16 +47,16 @@ export default function MedicosLayout({ children }: LayoutProps) {
     }
 
     try {
-      const decoded: MedicoDecodedToken = jwtDecode(token);
-
-      if (decoded.rol !== "MEDICO") {
+      const decoded: DecodedToken = jwtDecode(token as string);
+      // aceptar claim 'rol' o 'role'
+      const role = (decoded as any).rol || (decoded as any).role;
+      if (String(role).toUpperCase() !== "PACIENTE") {
         router.push("/");
         return;
       }
-
       setUserInfo(decoded);
     } catch (error) {
-      console.error(error);
+      console.error("Token inválido:", error);
       TokenService.removeToken();
       router.push("/login");
     }
@@ -64,10 +64,11 @@ export default function MedicosLayout({ children }: LayoutProps) {
 
   const menuItems = useMemo(
     () => [
-      { icon: Home, label: "Inicio", href: "/medicos" },
-      { icon: Users, label: "Pacientes", href: "/medicos/pacientes" },
-      { icon: CalendarDays, label: "Citas", href: "/medicos/citas" },
-      { icon: Stethoscope, label: "Consultas", href: "/medicos/consultas" },
+      { icon: Home, label: "Inicio", href: "/pacientes" },
+      { icon: CalendarDays, label: "Mis Citas", href: "/pacientes/citas" },
+      { icon: FileText, label: "Mis Consultas", href: "/pacientes/consultas" },
+      { icon: Archive, label: "Historial Médico", href: "/pacientes/historial-medico" },
+      { icon: Heart, label: "Historial Clínico", href: "/pacientes/historial-clinico" },
     ],
     []
   );
@@ -82,7 +83,6 @@ export default function MedicosLayout({ children }: LayoutProps) {
       {/* HEADER */}
       <header className="sticky top-0 z-40 w-full border-b bg-white shadow-sm">
         <div className="flex items-center justify-between h-14 px-4">
-          {/* Botón mobile */}
           <Button
             variant="ghost"
             size="icon"
@@ -92,13 +92,11 @@ export default function MedicosLayout({ children }: LayoutProps) {
             {sidebarOpen ? <X /> : <Menu />}
           </Button>
 
-          {/* Logo */}
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="Logo" className="h-9" />
-            <span className="font-semibold text-lg">CECOFAM </span>
+            <span className="font-semibold text-lg">CECOFAM</span>
           </div>
 
-          {/* Notificaciones y Perfil */}
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-5 w-5" />
@@ -107,8 +105,8 @@ export default function MedicosLayout({ children }: LayoutProps) {
 
             <div className="flex items-center gap-2">
               <Avatar className="h-8 w-8">
-                <AvatarImage src="/avatars/doctor.png" />
-                <AvatarFallback>{userInfo?.nombre?.charAt(0) || "M"}</AvatarFallback>
+                <AvatarImage src="/avatars/paciente.png" />
+                <AvatarFallback>{userInfo?.nombre?.charAt(0) || "P"}</AvatarFallback>
               </Avatar>
               <span className="text-sm font-medium">{userInfo?.nombre}</span>
             </div>
@@ -120,24 +118,20 @@ export default function MedicosLayout({ children }: LayoutProps) {
         </div>
       </header>
 
-      {/* SIDEBAR */}
+      {/* SIDEBAR + MAIN */}
       <div className="flex flex-1">
         <aside
           className={`fixed inset-y-0 left-0 z-30 mt-14 w-64 bg-white border-r shadow-sm transition-transform duration-200 
-            ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} 
-            md:translate-x-0`}
+            ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
         >
           <nav className="px-4 py-4 space-y-2">
             {menuItems.map((item) => {
               const active = pathname === item.href;
-
               return (
                 <Link key={item.href} href={item.href}>
                   <Button
                     variant={active ? "default" : "ghost"}
-                    className={`w-full flex justify-start gap-2 ${
-                      active ? "bg-blue-100 text-blue-700" : ""
-                    }`}
+                    className={`w-full flex justify-start gap-2 ${active ? "bg-blue-100 text-blue-700" : ""}`}
                   >
                     <item.icon className="h-4 w-4" />
                     {item.label}
@@ -148,10 +142,7 @@ export default function MedicosLayout({ children }: LayoutProps) {
           </nav>
         </aside>
 
-        {/* MAIN CONTENT */}
-        <main className={`flex-1 p-6 md:ml-64 transition-all`}>
-          {children}
-        </main>
+        <main className={`flex-1 p-6 md:ml-64 transition-all`}>{children}</main>
       </div>
     </div>
   );

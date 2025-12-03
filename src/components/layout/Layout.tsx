@@ -77,7 +77,7 @@ const Layout = ({ children }: LayoutProps) => {
         ];
       case "MEDICO":
         return [
-          { icon: Home, label: "Inicio", href: "/medicos" },
+          { icon: Home, label: "Inicio", href: "/medicos/pefil" },
           { icon: Users, label: "Mis Pacientes", href: "/medicos/pacientes" },
           { icon: CalendarDays, label: "Mis Citas", href: "/medicos/citas" },
         ];

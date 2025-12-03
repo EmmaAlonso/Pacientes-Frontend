@@ -17,25 +17,25 @@ import { withRoleProtection } from "@/app/utils/withRoleProtection";
 const stats = [
   {
     title: "Pacientes",
-    value: "1,234",
+    value: "4",
     description: "Estudiantes activos",
     icon: Users,
   },
   {
     title: "Citas",
-    value: "45",
+    value: "0",
     description: "Universidades registradas",
     icon: Building2,
   },
   {
     title: "Medicos",
-    value: "120",
+    value: "3",
     description: "Carreras disponibles",
     icon: GraduationCap,
   },
   {
     title: "Consultas",
-    value: "89",
+    value: "0",
     description: "Paquetes activos",
     icon: Package,
   },

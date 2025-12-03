@@ -8,6 +8,19 @@ export class MedicosApi {
     return data;
   }
 
+  // Obtener el médico actual (autenticado) - Intenta múltiples endpoints
+  static async getMe(): Promise<Medico> {
+    try {
+      // Intento 1: Usar endpoint /medicos/me
+      const { data } = await axiosInstance.get<Medico>(ENDPOINTS.MEDICOS.ME);
+      return data;
+    } catch (error: any) {
+      // Si falla, intenta obtener todos y filtrar por el ID del token
+      console.warn("Endpoint /medicos/me falló, intentando alternativa...", error.message);
+      throw error;
+    }
+  }
+
   static async getById(id: number): Promise<Medico> {
     const { data } = await axiosInstance.get<Medico>(`${ENDPOINTS.MEDICOS.BASE}/${id}`);
     return data;

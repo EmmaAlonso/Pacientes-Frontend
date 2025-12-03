@@ -19,7 +19,6 @@ export interface CreateMedicoDto {
   apellidoPaterno?: string;
   apellidoMaterno?: string;
   especialidad?: string;
-  email: string;
   telefono?: string;
   consultorio?: string;
   usuarioId?: number;
