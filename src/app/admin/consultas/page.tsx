@@ -1,8 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Eye, Edit, Trash2, Stethoscope, Plus } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Loader2, Eye, Edit, Trash2, Stethoscope } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { CitasApi } from "@/modules/citas/services/citas.api";
 import { Patient } from "@/modules/patients/types/patient.types";
@@ -29,49 +34,75 @@ export default function AdminConsultasPage() {
     try {
       setLoading(true);
       // debug: show which endpoints will be called
-      // eslint-disable-next-line no-console
-      console.debug('Requesting consultas and lookup lists via:', {
-        consultas: 'ConsultasApi.getAll()',
-        patients: 'CitasApi.getPatients()',
-        medicos: 'CitasApi.getMedicos()',
+      console.debug("Requesting consultas and lookup lists via:", {
+        consultas: "ConsultasApi.getAll()",
+        patients: "CitasApi.getPatients()",
+        medicos: "CitasApi.getMedicos()",
       });
-      const [data, p, m] = await Promise.all([ConsultasApi.getAll(), CitasApi.getPatients(), CitasApi.getMedicos()]);
+      const [data, p, m] = await Promise.all([
+        ConsultasApi.getAll(),
+        CitasApi.getPatients(),
+        CitasApi.getMedicos(),
+      ]);
       setConsultas(data);
       setPatients(p || []);
       setMedicos(m || []);
-    } catch {
-      // detailed error - try to extract axios fields and perform a quick fetch diagnostic
-      // eslint-disable-next-line no-console
-      console.error("Error fetching consultas:", arguments[0] || "unknown");
-      const err: any = arguments[0];
+    } catch (err: unknown) {
+      // detailed error - try to extract axios-like fields and perform a quick fetch diagnostic
+      // safer typing for error shape
+      type AxiosLikeError = {
+        message?: string;
+        code?: string;
+        response?: { data?: { message?: string } };
+        request?: unknown;
+      };
+      const e = err as AxiosLikeError;
+      console.error("Error fetching consultas:", e || "unknown");
       try {
         console.groupCollapsed("Consultas fetch debug info");
-        console.error("error.message:", err?.message);
-        console.error("error.code:", err?.code);
-        console.error("error.response:", err?.response);
-        console.error("error.request:", err?.request);
+        console.error("error.message:", e?.message);
+        console.error("error.code:", e?.code);
+        console.error("error.response:", e?.response);
+        console.error("error.request:", e?.request);
         console.groupEnd();
-      } catch (e) {
-        console.error("Error logging error details", e);
+      } catch (loge) {
+        console.error("Error logging error details", loge);
       }
 
       // perform a low-level fetch to see raw network result (bypasses axios interceptors)
       (async () => {
         try {
           const base = (await import("@/lib/endpoints")).ENDPOINTS.BASE_URL;
-          const url = `${base}${(await import("@/lib/endpoints")).ENDPOINTS.CONSULTAS.BASE}`;
-          // eslint-disable-next-line no-console
+          const url = `${base}${
+            (await import("@/lib/endpoints")).ENDPOINTS.CONSULTAS.BASE
+          }`;
           console.debug("Diagnostic fetch to:", url);
-          const r = await fetch(url, { method: "GET", credentials: "include", headers: { "Content-Type": "application/json", Authorization: localStorage.getItem("token") ? `Bearer ${localStorage.getItem("token")}` : undefined } as any });
-          // eslint-disable-next-line no-console
-          console.debug("Diagnostic fetch status:", r.status, await r.text().catch(() => "<no body>"));
-        } catch (e) {
-          // eslint-disable-next-line no-console
-          console.error("Diagnostic fetch failed:", e);
+          const token = (
+            await import("@/lib/services/token.service")
+          ).TokenService.getToken();
+          const headers: Record<string, string> = {
+            "Content-Type": "application/json",
+          };
+          if (token) headers.Authorization = `Bearer ${token}`;
+          const r = await fetch(url, {
+            method: "GET",
+            credentials: "include",
+            headers,
+          });
+          console.debug(
+            "Diagnostic fetch status:",
+            r.status,
+            await r.text().catch(() => "<no body>")
+          );
+        } catch (diagErr) {
+          console.error("Diagnostic fetch failed:", diagErr);
         }
       })();
 
-      const msg = err?.response?.data?.message || err?.message || "Error al cargar las consultas";
+      const msg =
+        e?.response?.data?.message ||
+        e?.message ||
+        "Error al cargar las consultas";
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -80,23 +111,67 @@ export default function AdminConsultasPage() {
 
   const getPatientName = (c: Consulta) => {
     const patientsMap = new Map(patients.map((p) => [p.id, p]));
-    const maybePid = (c as any).pacienteId ?? (c as any).patientId ?? c.paciente?.id ?? (c as any).paciente_id ?? (c as any).patient_id;
-    const p = c.paciente ?? (maybePid ? patientsMap.get(Number(maybePid)) : undefined);
-    if (p) return `${p.nombre} ${p.apellidoPaterno || ''}${p.apellidoPaterno && p.apellidoMaterno ? ' ' : ''}${p.apellidoMaterno || ''}`;
-    const maybeEmail = c.paciente?.email ?? (c as any).pacienteEmail ?? (c as any).paciente_email;
-    if (maybeEmail) return maybeEmail;
-    const fallbackId = maybePid ?? c.paciente?.id ?? (c as any).id;
+    const raw = c as unknown as Record<string, unknown>;
+    const maybePidRaw =
+      raw["pacienteId"] ??
+      raw["patientId"] ??
+      c.paciente?.id ??
+      raw["paciente_id"] ??
+      raw["patient_id"];
+    const maybePid =
+      typeof maybePidRaw === "number"
+        ? maybePidRaw
+        : typeof maybePidRaw === "string"
+        ? maybePidRaw.trim() === ""
+          ? undefined
+          : Number(maybePidRaw)
+        : undefined;
+    const p =
+      c.paciente ??
+      (maybePid !== undefined && !Number.isNaN(maybePid)
+        ? patientsMap.get(Number(maybePid))
+        : undefined);
+    if (p)
+      return `${p.nombre} ${p.apellidoPaterno || ""}${
+        p.apellidoPaterno && p.apellidoMaterno ? " " : ""
+      }${p.apellidoMaterno || ""}`;
+    const maybeEmail =
+      c.paciente?.email ?? raw["pacienteEmail"] ?? raw["paciente_email"];
+    if (maybeEmail) return String(maybeEmail);
+    const fallbackId = maybePid ?? c.paciente?.id ?? raw["id"];
     return fallbackId ? `Paciente id: ${fallbackId}` : "-";
   };
 
   const getMedicoName = (c: Consulta) => {
     const medicosMap = new Map(medicos.map((m) => [m.id, m]));
-    const maybeMid = (c as any).medicoId ?? (c as any).doctorId ?? c.medico?.id ?? (c as any).medico_id ?? (c as any).doctor_id;
-    const m = c.medico ?? (maybeMid ? medicosMap.get(Number(maybeMid)) : undefined);
-    if (m) return `${m.nombre} ${m.apellidoPaterno || ''}${m.apellidoPaterno && m.apellidoMaterno ? ' ' : ''}${m.apellidoMaterno || ''}`;
-    const maybeEmail = c.medico?.email ?? (c as any).medicoEmail ?? (c as any).medico_email;
-    if (maybeEmail) return maybeEmail;
-    const fallbackId = maybeMid ?? c.medico?.id ?? (c as any).id;
+    const raw = c as unknown as Record<string, unknown>;
+    const maybeMidRaw =
+      raw["medicoId"] ??
+      raw["doctorId"] ??
+      c.medico?.id ??
+      raw["medico_id"] ??
+      raw["doctor_id"];
+    const maybeMid =
+      typeof maybeMidRaw === "number"
+        ? maybeMidRaw
+        : typeof maybeMidRaw === "string"
+        ? maybeMidRaw.trim() === ""
+          ? undefined
+          : Number(maybeMidRaw)
+        : undefined;
+    const m =
+      c.medico ??
+      (maybeMid !== undefined && !Number.isNaN(maybeMid)
+        ? medicosMap.get(Number(maybeMid))
+        : undefined);
+    if (m)
+      return `${m.nombre} ${m.apellidoPaterno || ""}${
+        m.apellidoPaterno && m.apellidoMaterno ? " " : ""
+      }${m.apellidoMaterno || ""}`;
+    const maybeEmail =
+      c.medico?.email ?? raw["medicoEmail"] ?? raw["medico_email"];
+    if (maybeEmail) return String(maybeEmail);
+    const fallbackId = maybeMid ?? c.medico?.id ?? raw["id"];
     return fallbackId ? `Médico id: ${fallbackId}` : "-";
   };
 
@@ -114,7 +189,10 @@ export default function AdminConsultasPage() {
     }
   };
 
-  const handleView = (c: Consulta) => { setSelected(c); setIsViewOpen(true); };
+  const handleView = (c: Consulta) => {
+    setSelected(c);
+    setIsViewOpen(true);
+  };
 
   if (loading) {
     return (
@@ -134,14 +212,14 @@ export default function AdminConsultasPage() {
           {/* 🔹 Contador de consultas */}
           <div className="flex items-center bg-green-50 border border-green-200 rounded-xl px-3 py-1">
             <Stethoscope className="w-4 h-4 text-green-600 mr-2" />
-            <span className="text-green-700 font-semibold">{consultas.length}</span>
+            <span className="text-green-700 font-semibold">
+              {consultas.length}
+            </span>
             <span className="text-sm text-gray-500 ml-1">
               {consultas.length === 1 ? "consulta" : "consultas"}
             </span>
           </div>
         </div>
-
-       
       </div>
 
       {/* Tabla de consultas */}
@@ -194,7 +272,11 @@ export default function AdminConsultasPage() {
                         </span>
                       </td>
                       <td className="px-4 py-2 flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => handleView(c)}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleView(c)}
+                        >
                           <Eye className="w-4 h-4 mr-1" /> Ver
                         </Button>
                         <Button variant="outline" size="sm">
@@ -222,39 +304,100 @@ export default function AdminConsultasPage() {
           )}
         </CardContent>
       </Card>
-      <Dialog open={isViewOpen} onOpenChange={(open) => { if (!open) { setIsViewOpen(false); setSelected(null); } }}>
+      <Dialog
+        open={isViewOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsViewOpen(false);
+            setSelected(null);
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-[700px]">
-          <DialogHeader><DialogTitle>Detalle de Consulta</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Detalle de Consulta</DialogTitle>
+          </DialogHeader>
           {selected && (
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="p-4 border rounded">
                   <h3 className="font-semibold">Paciente</h3>
                   <div className="text-sm mt-2">
-                    <div><strong>Nombre:</strong> {selected.paciente?.nombre} {selected.paciente?.apellidoPaterno} {selected.paciente?.apellidoMaterno}</div>
-                    <div><strong>Email:</strong> {selected.paciente?.email || '-'}</div>
-                    <div><strong>Teléfono:</strong> {selected.paciente?.telefono || '-'}</div>
-                    <div><strong>Edad:</strong> {selected.paciente?.edad ?? '-'}</div>
-                    <div><strong>Dirección:</strong> {selected.paciente?.direccion || '-'}</div>
+                    <div>
+                      <strong>Nombre:</strong> {selected.paciente?.nombre}{" "}
+                      {selected.paciente?.apellidoPaterno}{" "}
+                      {selected.paciente?.apellidoMaterno}
+                    </div>
+                    <div>
+                      <strong>Email:</strong> {selected.paciente?.email || "-"}
+                    </div>
+                    <div>
+                      <strong>Teléfono:</strong>{" "}
+                      {selected.paciente?.telefono || "-"}
+                    </div>
+                    <div>
+                      <strong>Edad:</strong> {selected.paciente?.edad ?? "-"}
+                    </div>
+                    <div>
+                      <strong>Dirección:</strong>{" "}
+                      {selected.paciente?.direccion || "-"}
+                    </div>
                   </div>
                 </div>
 
                 <div className="p-4 border rounded">
                   <h3 className="font-semibold">Consulta</h3>
                   <div className="text-sm mt-2">
-                    <div><strong>Fecha:</strong> {new Date(selected.fecha).toLocaleString()}</div>
-                    <div><strong>Motivo:</strong> <div className="whitespace-pre-wrap">{selected.motivo || '-'}</div></div>
-                    <div><strong>Diagnóstico:</strong> <div className="whitespace-pre-wrap">{selected.diagnostico || '-'}</div></div>
-                    <div><strong>Tratamiento:</strong> <div className="whitespace-pre-wrap">{selected.tratamiento || '-'}</div></div>
-                    <div><strong>Observaciones:</strong> <div className="whitespace-pre-wrap">{selected.observaciones || '-'}</div></div>
-                    <div><strong>Estado:</strong> {selected.estado}</div>
-                    {selected.cita && <div><strong>Cita asociada:</strong> {selected.cita.id}</div>}
+                    <div>
+                      <strong>Fecha:</strong>{" "}
+                      {new Date(selected.fecha).toLocaleString()}
+                    </div>
+                    <div>
+                      <strong>Motivo:</strong>{" "}
+                      <div className="whitespace-pre-wrap">
+                        {selected.motivo || "-"}
+                      </div>
+                    </div>
+                    <div>
+                      <strong>Diagnóstico:</strong>{" "}
+                      <div className="whitespace-pre-wrap">
+                        {selected.diagnostico || "-"}
+                      </div>
+                    </div>
+                    <div>
+                      <strong>Tratamiento:</strong>{" "}
+                      <div className="whitespace-pre-wrap">
+                        {selected.tratamiento || "-"}
+                      </div>
+                    </div>
+                    <div>
+                      <strong>Observaciones:</strong>{" "}
+                      <div className="whitespace-pre-wrap">
+                        {selected.observaciones || "-"}
+                      </div>
+                    </div>
+                    <div>
+                      <strong>Estado:</strong> {selected.estado}
+                    </div>
+                    {selected.cita && (
+                      <div>
+                        <strong>Cita asociada:</strong> {selected.cita.id}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
 
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => { setIsViewOpen(false); setSelected(null); }}>Cerrar</Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsViewOpen(false);
+                    setSelected(null);
+                  }}
+                >
+                  Cerrar
+                </Button>
               </div>
             </div>
           )}

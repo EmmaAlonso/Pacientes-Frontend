@@ -4,6 +4,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { jwtDecode } from "jwt-decode";
+import Image from "next/image";
 
 import { TokenService } from "@/lib/services/token.service";
 import { Button } from "@/components/ui/button";
@@ -47,13 +48,20 @@ export default function MedicosLayout({ children }: LayoutProps) {
     }
 
     try {
-      const decoded: MedicoDecodedToken = jwtDecode(token);
-
-      if (decoded.rol !== "MEDICO") {
+      const decodedRaw = jwtDecode(token as string) as Record<string, unknown>;
+      const role = (decodedRaw["rol"] || decodedRaw["role"]) as
+        | string
+        | undefined;
+      if ((role || "").toUpperCase() !== "MEDICO") {
         router.push("/");
         return;
       }
-
+      const decoded: MedicoDecodedToken = {
+        rol: role || "MEDICO",
+        nombre: decodedRaw["nombre"] as string | undefined,
+        email: decodedRaw["email"] as string | undefined,
+        id: decodedRaw["id"] as number | undefined,
+      };
       setUserInfo(decoded);
     } catch (error) {
       console.error(error);
@@ -94,7 +102,13 @@ export default function MedicosLayout({ children }: LayoutProps) {
 
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Logo" className="h-9" />
+            <Image
+              src="/logo.png"
+              alt="Logo"
+              width={36}
+              height={36}
+              className="h-9"
+            />
             <span className="font-semibold text-lg">CECOFAM </span>
           </div>
 
@@ -108,7 +122,9 @@ export default function MedicosLayout({ children }: LayoutProps) {
             <div className="flex items-center gap-2">
               <Avatar className="h-8 w-8">
                 <AvatarImage src="/avatars/doctor.png" />
-                <AvatarFallback>{userInfo?.nombre?.charAt(0) || "M"}</AvatarFallback>
+                <AvatarFallback>
+                  {userInfo?.nombre?.charAt(0) || "M"}
+                </AvatarFallback>
               </Avatar>
               <span className="text-sm font-medium">{userInfo?.nombre}</span>
             </div>
@@ -149,9 +165,7 @@ export default function MedicosLayout({ children }: LayoutProps) {
         </aside>
 
         {/* MAIN CONTENT */}
-        <main className={`flex-1 p-6 md:ml-64 transition-all`}>
-          {children}
-        </main>
+        <main className={`flex-1 p-6 md:ml-64 transition-all`}>{children}</main>
       </div>
     </div>
   );
