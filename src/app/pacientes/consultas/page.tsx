@@ -20,9 +20,14 @@ export default function PacienteConsultasPage() {
 
 	const fetch = async () => {
 		try {
-			const data = await ConsultasApi.getAll();
-			if (user?.rol === "PACIENTE") setConsultas(data.filter((c) => c.paciente?.id === user.sub));
-			else setConsultas(data);
+			if (user?.rol === "PACIENTE") {
+				// Paciente → usar endpoint dedicado
+				const my = await ConsultasApi.getMine();
+				setConsultas(my);
+			} else {
+				const data = await ConsultasApi.getAll();
+				setConsultas(data);
+			}
 		} catch (err) {
 			console.error(err);
 			showToast("Error al cargar consultas", "error");

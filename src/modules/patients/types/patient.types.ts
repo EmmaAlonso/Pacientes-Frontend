@@ -9,6 +9,11 @@ export interface Patient extends BaseEntity {
   apellidoMaterno?: string;
   direccion?: string;
   email: string;
+  usuario?: {
+    id: number;
+    email?: string;
+    nombre?: string;
+  };
   edad?: number;
   telefono?: string;
   ocupacion?: string;

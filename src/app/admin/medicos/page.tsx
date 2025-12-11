@@ -25,6 +25,8 @@ export default function AdminMedicosPage() {
   const [selectedMedico, setSelectedMedico] = useState<Medico | undefined>(
     undefined
   );
+  const [openView, setOpenView] = useState(false);
+  const [viewMedico, setViewMedico] = useState<Medico | null>(null);
 
   useEffect(() => {
     fetchMedicos();
@@ -83,8 +85,17 @@ export default function AdminMedicosPage() {
 
   return (
     <div className="p-6 space-y-6">
+      {/* Encabezado con contador */}
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Gestión de Médicos</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold">Gestión de Médicos</h1>
+          {!loading && (
+            <span className="bg-green-100 text-green-700 text-sm font-semibold px-3 py-1 rounded-full">
+              {medicos.length} {medicos.length === 1 ? "registrado" : "registrados"}
+            </span>
+          )}
+        </div>
+
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
           <DialogTrigger asChild>
             <Button className="flex items-center gap-2" onClick={openNewMedicoForm}>
@@ -107,16 +118,7 @@ export default function AdminMedicosPage() {
         </Dialog>
       </div>
 
-      {/* Estadísticas */}
-      <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200">
-        <CardHeader>
-          <CardTitle>Total de médicos registrados</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-3xl font-semibold text-green-600">{medicos.length}</p>
-        </CardContent>
-      </Card>
-
+     
       {/* Tabla */}
       <Card>
         <CardHeader>
@@ -139,17 +141,24 @@ export default function AdminMedicosPage() {
                 {medicos.map((m) => (
                   <tr key={m.id} className="border-t hover:bg-gray-50">
                     <td className="px-4 py-2">{m.id}</td>
-                    <td className="px-4 py-2">{m.nombre} {(m.apellidoPaterno || '') + (m.apellidoPaterno && m.apellidoMaterno ? ' ' : '') + (m.apellidoMaterno || '')}</td>
+                    <td className="px-4 py-2">
+                      {m.nombre}{" "}
+                      {(m.apellidoPaterno || "") +
+                        (m.apellidoPaterno && m.apellidoMaterno ? " " : "") +
+                        (m.apellidoMaterno || "")}
+                    </td>
                     <td className="px-4 py-2">{m.especialidad}</td>
-                    <td className="px-4 py-2">{m.email}</td>
+                    <td className="px-4 py-2">{m.email || m.usuario?.email || "-"}</td>
                     <td className="px-4 py-2">{m.telefono}</td>
                     <td className="px-4 py-2 flex gap-2">
-                      <Link href={`/admin/medicos/${m.id}`}>
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" onClick={() => { setViewMedico(m); setOpenView(true); }}>
                           <Eye className="w-4 h-4 mr-1" /> Ver
                         </Button>
-                      </Link>
-                      <Button variant="outline" size="sm" onClick={() => handleEdit(m)}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(m)}
+                      >
                         <Edit className="w-4 h-4 mr-1" /> Editar
                       </Button>
                       <Button
@@ -173,6 +182,26 @@ export default function AdminMedicosPage() {
           </div>
         </CardContent>
       </Card>
+      {/* View Medico Modal */}
+      <Dialog open={openView} onOpenChange={setOpenView}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Detalles del Médico</DialogTitle>
+          </DialogHeader>
+
+              {viewMedico && (
+            <div className="space-y-3 p-2">
+              <p><strong>Nombre:</strong> {viewMedico.nombre} {(viewMedico.apellidoPaterno || '') + (viewMedico.apellidoPaterno && viewMedico.apellidoMaterno ? ' ' : '') + (viewMedico.apellidoMaterno || '')}</p>
+              <p><strong>Especialidad:</strong> {viewMedico.especialidad || '-'}</p>
+              <p><strong>Email:</strong> {viewMedico.email || viewMedico.usuario?.email || '-'}</p>
+              <p><strong>Teléfono:</strong> {viewMedico.telefono || '-'}</p>
+              <div className="flex justify-end pt-4">
+                <Button variant="outline" onClick={() => setOpenView(false)}>Cerrar</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

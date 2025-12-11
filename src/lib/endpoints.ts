@@ -11,11 +11,14 @@ export const ENDPOINTS = {
   },
   PATIENTS: {
     BASE: "/patients",
+    SELECT: "/patients/select",
     ME: "/patients/me",
   },
   MEDICOS: {
     BASE: "/medicos",
     ME: "/medicos/me",
+    PUBLIC: "/medicos/public",
+    
   },
   CITAS: {
     BASE: "/citas",

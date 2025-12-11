@@ -10,34 +10,34 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Users, Building2, GraduationCap, Package } from "lucide-react";
+import { Users, Building2, GraduationCap, Package , CalendarDays , Stethoscope, ListCheck} from "lucide-react";
 
 import { withRoleProtection } from "@/app/utils/withRoleProtection";
 
 const stats = [
   {
     title: "Pacientes",
-    value: "4",
-    description: "Estudiantes activos",
+    value: "7",
+    description: "Pacientes registrados",
     icon: Users,
   },
   {
     title: "Citas",
-    value: "0",
-    description: "Universidades registradas",
-    icon: Building2,
+    value: "3",
+    description: "Citas registradas",
+    icon: CalendarDays,
   },
   {
     title: "Medicos",
-    value: "3",
-    description: "Carreras disponibles",
-    icon: GraduationCap,
+    value: "4",
+    description: "Medicos disponibles",
+    icon: Stethoscope,
   },
   {
     title: "Consultas",
-    value: "0",
-    description: "Paquetes activos",
-    icon: Package,
+    value: "2",
+    description: "Consultas registradas",
+    icon: ListCheck,
   },
 ];
 
@@ -55,7 +55,7 @@ function HomePage() {
     CENTRO DE CONVIVENCIA FAMILIAR
   </h1>
   <p className="text-muted-foreground" data-oid="962i1i7">
-    Sistema de gestión para pacientes
+    Sistema de gestión para pacientes, medicos, consultas y citas
   </p>
 </div>
 
@@ -117,24 +117,13 @@ function HomePage() {
                       className="text-sm text-muted-foreground"
                       data-oid="aa1kp2a"
                     >
-                      Juan Pérez se ha registrado en el sistema
+                      Tito Diaz se ha registrado en el sistema
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center" data-oid="482-di4">
                   <div className="ml-4 space-y-1" data-oid="x7-t2f6">
-                    <p
-                      className="text-sm font-medium leading-none"
-                      data-oid="ahqb_ob"
-                    >
-                      Pago procesado
-                    </p>
-                    <p
-                      className="text-sm text-muted-foreground"
-                      data-oid="tq61:3g"
-                    >
-                      Se ha procesado un pago por $1,500
-                    </p>
+                    
                   </div>
                 </div>
                 <div className="flex items-center" data-oid="ky-:pw_">
@@ -143,14 +132,15 @@ function HomePage() {
                       className="text-sm font-medium leading-none"
                       data-oid="pp0a.--"
                     >
-                      Nueva Cita agregada
+                      Nueva Consulta agregada
                     </p>
                     <p
                       className="text-sm text-muted-foreground"
                       data-oid="s:.gfbv"
                     >
-                      Universidad Tecnológica se ha agregado al sistema
+                      Por Dr. Miguel Salvador
                     </p>
+
                   </div>
                 </div>
               </div>
@@ -158,9 +148,9 @@ function HomePage() {
           </Card>
           <Card className="col-span-3" data-oid="oi_bz21">
             <CardHeader data-oid="1w5zd1t">
-              <CardTitle data-oid="::7adrl">Próximos Eventos</CardTitle>
+              <CardTitle data-oid="::7adrl">Próximas Citas</CardTitle>
               <CardDescription data-oid="bnhraab">
-                Eventos programados para los próximos días
+            
               </CardDescription>
             </CardHeader>
             <CardContent data-oid="xf40-9u">
@@ -171,13 +161,13 @@ function HomePage() {
                       className="text-sm font-medium leading-none"
                       data-oid="9_k6lc9"
                     >
-                      Ceremonia de Graduación
+                      No hay citas programadas
                     </p>
                     <p
                       className="text-sm text-muted-foreground"
                       data-oid="hfgde72"
                     >
-                      15 de Junio, 2024 - 10:00 AM
+                      
                     </p>
                   </div>
                 </div>
@@ -187,13 +177,13 @@ function HomePage() {
                       className="text-sm font-medium leading-none"
                       data-oid="a4xmb2k"
                     >
-                      Entrega de Togas
+                      
                     </p>
                     <p
                       className="text-sm text-muted-foreground"
                       data-oid="h1ue9kr"
                     >
-                      14 de Junio, 2024 - 2:00 PM
+                    
                     </p>
                   </div>
                 </div>
@@ -203,13 +193,13 @@ function HomePage() {
                       className="text-sm font-medium leading-none"
                       data-oid="v5wmk:b"
                     >
-                      Sesión de Fotos
+                      
                     </p>
                     <p
                       className="text-sm text-muted-foreground"
                       data-oid="m.pt8:j"
                     >
-                      13 de Junio, 2024 - 9:00 AM
+                
                     </p>
                   </div>
                 </div>

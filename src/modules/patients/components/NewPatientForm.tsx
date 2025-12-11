@@ -30,6 +30,8 @@ export function NewPatientForm({ onSuccess, onCancel, patient }: NewPatientFormP
   const [password, setPassword] = useState(""); // 🔥 necesario para crear usuario
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [createAccessPassword, setCreateAccessPassword] = useState("");
+  const [isCreatingAccess, setIsCreatingAccess] = useState(false);
 
   const handleInputChange = (field: keyof CreatePatientDto, value: string | number | undefined) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -87,6 +89,37 @@ export function NewPatientForm({ onSuccess, onCancel, patient }: NewPatientFormP
       console.error("Error creating patient:", err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Crear acceso para paciente ya existente (usado por admin)
+  const handleCreateAccess = async () => {
+    if (!patient) return;
+    if (!createAccessPassword) {
+      setError("La contraseña es obligatoria para crear el acceso");
+      return;
+    }
+
+    setIsCreatingAccess(true);
+    setError(null);
+    try {
+      const signup = await AuthService.signup({
+        nombre: formData.nombre || patient.nombre,
+        email: formData.email || patient.email,
+        password: createAccessPassword,
+        rol: "PACIENTE",
+      });
+
+      // Vincular usuario al paciente
+      await PatientsApi.update(patient.id, { usuario: { id: signup.user.id } } as any);
+
+      toast.success("Acceso creado y vinculado al paciente");
+      onSuccess();
+    } catch (err: any) {
+      console.error("Error creando acceso:", err);
+      setError(err?.response?.data?.message || "Error al crear el acceso");
+    } finally {
+      setIsCreatingAccess(false);
     }
   };
 
@@ -191,6 +224,27 @@ export function NewPatientForm({ onSuccess, onCancel, patient }: NewPatientFormP
             onChange={(e) => setPassword(e.target.value)}
             required
           />
+        </div>
+      )}
+
+      {/* 🔥 Crear acceso para paciente existente (admin) */}
+      {patient && !patient.usuario && (
+        <div className="space-y-2">
+          <Label>Crear acceso para este paciente</Label>
+          <Input
+            type="password"
+            placeholder="Nueva contraseña para el paciente"
+            value={createAccessPassword}
+            onChange={(e) => setCreateAccessPassword(e.target.value)}
+          />
+          <div className="flex gap-2">
+            <Button type="button" onClick={handleCreateAccess} disabled={isCreatingAccess}>
+              {isCreatingAccess ? "Creando..." : "Crear acceso"}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => { setCreateAccessPassword(""); setError(null); }}>
+              Cancelar
+            </Button>
+          </div>
         </div>
       )}
 

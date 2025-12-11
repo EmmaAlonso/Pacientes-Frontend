@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, CalendarDays, Users } from "lucide-react";
 import { MedicosApi } from "@/modules/medicos/services/medicos.api";
 import { Medico } from "@/modules/medicos/types/medico.types";
 
@@ -37,31 +37,35 @@ export default function MedicoDetallePage() {
 
   return (
     <div className="p-6 space-y-6">
-      <Link href="/admin/medicos">
-        <Button variant="outline" size="sm">
-          <ArrowLeft className="w-4 h-4 mr-1" /> Regresar
-        </Button>
-      </Link>
+      <div className="flex items-center gap-3">
+        <Link href="/admin/medicos">
+          <Button variant="outline" size="sm">
+            <ArrowLeft className="w-4 h-4 mr-1" /> Regresar
+          </Button>
+        </Link>
+
+       
+      </div>
 
       <Card>
         <CardHeader>
           <CardTitle>Detalles del Médico</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          <p><strong>Nombre:</strong> {medico.nombre} {(medico.apellidoPaterno || '') + (medico.apellidoPaterno && medico.apellidoMaterno ? ' ' : '') + (medico.apellidoMaterno || '')}</p>
-          <p><strong>Especialidad:</strong> {medico.especialidad}</p>
-          <p><strong>Email:</strong> {medico.email}</p>
-          <p><strong>Teléfono:</strong> {medico.telefono}</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Citas y Consultas</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-gray-500 italic">
-            (Próximamente: citas y pacientes asignados a este médico.)
+          <p>
+            <strong>Nombre:</strong> {medico.nombre}{" "}
+            {(medico.apellidoPaterno || "") +
+              (medico.apellidoPaterno && medico.apellidoMaterno ? " " : "") +
+              (medico.apellidoMaterno || "")}
+          </p>
+          <p>
+            <strong>Especialidad:</strong> {medico.especialidad}
+          </p>
+          <p>
+            <strong>Email:</strong> {medico.email || medico.usuario?.email || '-'}
+          </p>
+          <p>
+            <strong>Teléfono:</strong> {medico.telefono}
           </p>
         </CardContent>
       </Card>

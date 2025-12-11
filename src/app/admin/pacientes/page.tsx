@@ -20,8 +20,10 @@ export default function PacientesPage() {
 
   const [openModal, setOpenModal] = useState(false);
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
+  const [openView, setOpenView] = useState(false);
+  const [viewPatient, setViewPatient] = useState<Patient | null>(null);
 
-  // 🔥 cargar pacientes
+  // 🔥 Cargar pacientes
   const loadPatients = async () => {
     try {
       const data = await PatientsApi.getAll();
@@ -61,8 +63,17 @@ export default function PacientesPage() {
 
   return (
     <div className="p-6 space-y-6">
+      {/* Encabezado con contador */}
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Pacientes</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold">Pacientes</h1>
+          {!loading && (
+            <span className="bg-blue-100 text-blue-700 text-sm font-semibold px-3 py-1 rounded-full">
+              {patients.length} {patients.length === 1 ? "registrado" : "registrados"}
+            </span>
+          )}
+        </div>
+
         <Button onClick={handleCreate} className="gap-2">
           <Plus size={18} /> Nuevo Paciente
         </Button>
@@ -73,7 +84,9 @@ export default function PacientesPage() {
         {loading ? (
           <p className="text-center py-4">Cargando...</p>
         ) : patients.length === 0 ? (
-          <p className="text-center py-4 text-gray-500">No hay pacientes registrados.</p>
+          <p className="text-center py-4 text-gray-500">
+            No hay pacientes registrados.
+          </p>
         ) : (
           <table className="w-full border-collapse">
             <thead>
@@ -96,7 +109,19 @@ export default function PacientesPage() {
                   <td className="p-2">{p.telefono}</td>
 
                   <td className="p-2 flex gap-2">
-                    <Button variant="outline" size="icon" onClick={() => handleEdit(p)}>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => { setViewPatient(p); setOpenView(true); }}
+                    >
+                      Ver
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleEdit(p)}
+                    >
                       <Pencil size={16} />
                     </Button>
 
@@ -132,6 +157,29 @@ export default function PacientesPage() {
               loadPatients();
             }}
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* View Details Modal */}
+      <Dialog open={openView} onOpenChange={setOpenView}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Detalles del Paciente</DialogTitle>
+          </DialogHeader>
+
+          {viewPatient && (
+            <div className="space-y-3 p-2">
+              <p><strong>Nombre:</strong> {viewPatient.nombre} {viewPatient.apellidoPaterno} {viewPatient.apellidoMaterno}</p>
+              <p><strong>Email:</strong> {viewPatient.email}</p>
+              <p><strong>Edad:</strong> {viewPatient.edad ?? '-'}</p>
+              <p><strong>Teléfono:</strong> {viewPatient.telefono ?? '-'}</p>
+              <p><strong>Dirección:</strong> {viewPatient.direccion ?? '-'}</p>
+              {viewPatient.usuario && <p><strong>Usuario vinculado:</strong> {viewPatient.usuario.id}</p>}
+              <div className="flex justify-end pt-4">
+                <Button variant="outline" onClick={() => setOpenView(false)}>Cerrar</Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

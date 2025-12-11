@@ -8,18 +8,29 @@ export class ConsultasApi {
     return data;
   }
 
+  static async getMine(): Promise<Consulta[]> {
+    const { data } = await axiosInstance.get<Consulta[]>(`${ENDPOINTS.CONSULTAS.BASE}/mine`);
+    return data;
+  }
+
   static async getById(id: number): Promise<Consulta> {
     const { data } = await axiosInstance.get<Consulta>(`${ENDPOINTS.CONSULTAS.BASE}/${id}`);
     return data;
   }
 
   static async create(consulta: CreateConsultaDto): Promise<Consulta> {
-    const { data } = await axiosInstance.post<Consulta>(ENDPOINTS.CONSULTAS.BASE, consulta);
+    const { data } = await axiosInstance.post<Consulta>(
+      ENDPOINTS.CONSULTAS.BASE,
+      consulta
+    );
     return data;
   }
 
   static async update(id: number, consulta: Partial<CreateConsultaDto>): Promise<Consulta> {
-    const { data } = await axiosInstance.patch<Consulta>(`${ENDPOINTS.CONSULTAS.BASE}/${id}`, consulta);
+    const { data } = await axiosInstance.patch<Consulta>(
+      `${ENDPOINTS.CONSULTAS.BASE}/${id}`,
+      consulta
+    );
     return data;
   }
 

@@ -67,8 +67,7 @@ export default function PacientesLayout({ children }: LayoutProps) {
       { icon: Home, label: "Inicio", href: "/pacientes" },
       { icon: CalendarDays, label: "Mis Citas", href: "/pacientes/citas" },
       { icon: FileText, label: "Mis Consultas", href: "/pacientes/consultas" },
-      { icon: Archive, label: "Historial Médico", href: "/pacientes/historial-medico" },
-      { icon: Heart, label: "Historial Clínico", href: "/pacientes/historial-clinico" },
+     
     ],
     []
   );

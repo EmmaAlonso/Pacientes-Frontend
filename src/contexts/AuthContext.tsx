@@ -2,15 +2,16 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { TokenService } from "@/lib/services/token.service";
-import { jwtDecode } from "jwt-decode";
+import {jwtDecode} from "jwt-decode";
 import { useRouter } from "next/navigation";
 
 export interface JwtPayload {
-  sub: number; // Cambiado de "id" a "sub" (estándar JWT)
+  sub: number;
   email: string;
-  rol: "ADMIN" | "MEDICO" | "PACIENTE"; // Cambiado de "role" a "rol" para coincidir con backend
+  rol: "ADMIN" | "MEDICO" | "PACIENTE";
   nombre: string;
   exp: number;
+  medicoId?: number | null;
 }
 
 interface AuthContextType {
@@ -18,7 +19,7 @@ interface AuthContextType {
   token: string | null;
   login: (token: string) => void;
   logout: () => void;
-  ready: boolean; // indica que ya se intentó cargar el token inicial
+  ready: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -30,65 +31,75 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  // Inicializar token de forma síncrona para evitar parpadeos / redirecciones prematuras
-  const initialToken =
-    typeof window !== "undefined" ? TokenService.getToken() : null;
+  const initialToken = typeof window !== "undefined" ? TokenService.getToken() : null;
   const [token, setToken] = useState<string | null>(initialToken);
+
   const [user, setUser] = useState<JwtPayload | null>(() => {
-    if (initialToken) {
-      try {
-        const decoded = jwtDecode<JwtPayload>(initialToken);
-        if (decoded.exp && decoded.exp * 1000 < Date.now()) {
-          TokenService.removeToken();
-          return null;
-        }
-        return decoded;
-      } catch {
+    if (!initialToken) return null;
+    try {
+      const decoded = jwtDecode<JwtPayload>(initialToken);
+      // token expirado?
+      if (decoded.exp && decoded.exp * 1000 < Date.now()) {
         TokenService.removeToken();
         return null;
       }
+      // Guardar medicoId en localStorage para compatibilidad con código existente
+      if (typeof window !== "undefined" && decoded.medicoId) {
+        localStorage.setItem("medicoId", String(decoded.medicoId));
+      }
+      return decoded;
+    } catch (e) {
+      TokenService.removeToken();
+      return null;
     }
-    return null;
   });
+
   const [ready, setReady] = useState(false);
   const router = useRouter();
 
-  // Validación diferida si no hubo token inicial (por si aparece luego en hidratación)
   useEffect(() => {
     if (!ready) setReady(true);
   }, [ready]);
 
-  // ✅ Login
-  const login = (token: string) => {
-    console.log("Logging in with token:", token);
-    TokenService.setToken(token);
-    const decoded = jwtDecode<JwtPayload>(token);
+  const login = (tokenStr: string) => {
+    TokenService.setToken(tokenStr);
+    setToken(tokenStr);
+    try {
+      const decoded = jwtDecode<JwtPayload>(tokenStr);
+      setUser(decoded);
 
-    setUser(decoded);
-    setToken(token);
+      // GUARDA medicoId explícitamente en localStorage (para tus páginas)
+      if (decoded.medicoId) {
+        localStorage.setItem("medicoId", String(decoded.medicoId));
+      } else {
+        localStorage.removeItem("medicoId");
+      }
 
-    // 🚦 Redirección según rol
-    const userRole = decoded.rol?.toUpperCase();
-    switch (userRole) {
-      case "ADMIN":
-        router.replace("/admin");
-        break;
-      case "MEDICO":
-        router.replace("/medicos");
-        break;
-      case "PACIENTE":
-        router.replace("/pacientes");
-        break;
-      default:
-        router.replace("/");
+      // redirección por rol
+      const userRole = decoded.rol?.toUpperCase();
+      switch (userRole) {
+        case "ADMIN":
+          router.replace("/admin");
+          break;
+        case "MEDICO":
+          router.replace("/medicos");
+          break;
+        case "PACIENTE":
+          router.replace("/pacientes");
+          break;
+        default:
+          router.replace("/");
+      }
+    } catch (err) {
+      console.error("Error decodificando token en login:", err);
     }
   };
 
-  // ✅ Logout
   const logout = () => {
     TokenService.removeToken();
-    setUser(null);
+    localStorage.removeItem("medicoId");
     setToken(null);
+    setUser(null);
     router.replace("/login");
   };
 

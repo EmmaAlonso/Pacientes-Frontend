@@ -12,6 +12,7 @@ import {
   Menu,
   X,
   LogOut,
+  ListCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -73,7 +74,7 @@ const Layout = ({ children }: LayoutProps) => {
           { icon: Users, label: "Pacientes", href: "/admin/pacientes" },
           { icon: Stethoscope, label: "Médicos", href: "/admin/medicos" },
           { icon: CalendarDays, label: "Citas", href: "/admin/citas" },
-          { icon: Settings, label: "Consultas", href: "/admin/consultas" },
+          { icon: ListCheck, label: "Consultas", href: "/admin/consultas" },
         ];
       case "MEDICO":
         return [
@@ -113,12 +114,7 @@ const Layout = ({ children }: LayoutProps) => {
           </div>
 
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5" />
-              <span className="absolute -right-1 -top-1 flex h-3 w-3 items-center justify-center rounded-full bg-primary text-[9px] text-white">
-                2
-              </span>
-            </Button>
+            
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

@@ -50,12 +50,24 @@ function PacientesPage() {
           setPatient(me);
           setFormData(me);
 
-          // Cargar citas y consultas y filtrar por paciente
-          const allCitas = await CitasApi.getAll();
-          setCitas(allCitas.filter((c) => c.paciente?.id === me.id));
+          // Cargar citas y consultas del paciente (endpoints /mine)
+          try {
+            const myCitas = await CitasApi.getMine();
+            setCitas(myCitas);
+          } catch (err: any) {
+            console.error("Error al cargar citas del paciente:", err);
+            toast.error("No fue posible cargar tus citas. Si el problema persiste, contacta al administrador.");
+            setCitas([]);
+          }
 
-          const allConsultas = await ConsultasApi.getAll();
-          setConsultas(allConsultas.filter((c) => c.paciente?.id === me.id));
+          try {
+            const myConsultas = await ConsultasApi.getMine();
+            setConsultas(myConsultas);
+          } catch (err: any) {
+            console.error("Error al cargar consultas del paciente:", err);
+            toast.error("No fue posible cargar tus consultas. Si el problema persiste, contacta al administrador.");
+            setConsultas([]);
+          }
         }
       } catch (err) {
         console.error("Error al cargar datos del paciente:", err);
@@ -90,10 +102,6 @@ function PacientesPage() {
       <main className="container mx-auto px-4 py-6">
         <section className="bg-white rounded-lg shadow p-6 mb-6">
           <div className="flex items-center gap-6">
-            <Avatar className="h-24 w-24">
-              <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${patient?.nombre}`} />
-              <AvatarFallback>{(patient?.nombre?.charAt(0) || "P").toUpperCase()}</AvatarFallback>
-            </Avatar>
             <div>
               <h1 className="text-3xl font-bold">{patient?.nombre} {patient?.apellidoPaterno}</h1>
               <p className="text-sm text-muted-foreground">{patient?.email}</p>
@@ -184,29 +192,7 @@ function PacientesPage() {
         </section>
 
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Historial Médico</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">Aquí aparecerá tu historial médico (diagnósticos, tratamientos, alergias, etc.).</p>
-              <div className="mt-4">
-                <Button onClick={() => toast("Funcionalidad próximamente disponible")}>Agregar registro</Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Historial Clínico</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">Registros clínicos y notas de consultas.</p>
-              <div className="mt-4">
-                <Button onClick={() => toast("Funcionalidad próximamente disponible")}>Agregar nota clínica</Button>
-              </div>
-            </CardContent>
-          </Card>
+      
         </section>
       </main>
     );

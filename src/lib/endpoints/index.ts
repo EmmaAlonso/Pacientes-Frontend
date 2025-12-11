@@ -1,5 +1,5 @@
 export const ENDPOINTS = {
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000",
+  BASE_URL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3005",
   AUTH: {
     LOGIN: "/auth/login",
     REGISTER: "/auth/register",
@@ -15,10 +15,14 @@ export const ENDPOINTS = {
     BASE: "/patients",
     MINE: "/patients/mine",
     REGISTER: "/patients/register",
+    SELECT: "/patients/select",
+    ME: "/patients/me",
   },
 
   MEDICOS: {
     BASE: "/medicos",
+    PUBLIC: "/medicos/public",
+     ME: "/medicos/me",
   },
   CITAS: {
     BASE: "/citas",

@@ -1,5 +1,7 @@
 import axios from "axios";
+
 import { ENDPOINTS } from "../endpoints";
+
 import { TokenService } from "../services/token.service";
 
 export const axiosInstance = axios.create({
@@ -9,8 +11,6 @@ export const axiosInstance = axios.create({
   },
 });
 
-
-// Request interceptor
 axiosInstance.interceptors.request.use(
   (config) => {
     const token = TokenService.getToken();
@@ -19,13 +19,9 @@ axiosInstance.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-
-// Response interceptor
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
