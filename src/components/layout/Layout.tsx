@@ -7,8 +7,6 @@ import {
   Users,
   Stethoscope,
   CalendarDays,
-  Settings,
-  Bell,
   Menu,
   X,
   LogOut,
@@ -25,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { jwtDecode } from "jwt-decode";
+import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { TokenService } from "@/lib/services/token.service";
 import Link from "next/link";
@@ -34,7 +33,7 @@ interface LayoutProps {
 }
 
 interface DecodedToken {
-  rol: string;
+  rol?: string;
   nombre?: string;
   email?: string;
 }
@@ -49,7 +48,18 @@ const Layout = ({ children }: LayoutProps) => {
     const token = TokenService.getToken();
     if (token) {
       try {
-        const decoded: DecodedToken = jwtDecode(token);
+        const decodedRaw = jwtDecode(token as string) as Record<
+          string,
+          unknown
+        >;
+        const role = (decodedRaw["rol"] || decodedRaw["role"]) as
+          | string
+          | undefined;
+        const decoded: DecodedToken = {
+          rol: role,
+          nombre: decodedRaw["nombre"] as string | undefined,
+          email: decodedRaw["email"] as string | undefined,
+        };
         setUserInfo(decoded);
       } catch (error) {
         console.error("Error al decodificar token:", error);
@@ -107,18 +117,23 @@ const Layout = ({ children }: LayoutProps) => {
           </Button>
 
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Logo" className="h-9 w-auto" />
-            <span className="font-semibold text-lg text-gray-800">
-              CECOFAM
-            </span>
+            <Image
+              src="/logo.png"
+              alt="Logo"
+              width={36}
+              height={36}
+              className="h-9 w-auto"
+            />
+            <span className="font-semibold text-lg text-gray-800">CECOFAM</span>
           </div>
 
           <div className="flex items-center gap-3">
-            
-
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                <Button
+                  variant="ghost"
+                  className="relative h-8 w-8 rounded-full"
+                >
                   <Avatar className="h-8 w-8">
                     <AvatarImage src="/avatars/01.png" alt="Usuario" />
                     <AvatarFallback>
@@ -138,7 +153,10 @@ const Layout = ({ children }: LayoutProps) => {
                   </p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="text-red-600"
+                >
                   <LogOut className="h-4 w-4 mr-2" /> Cerrar sesión
                 </DropdownMenuItem>
               </DropdownMenuContent>
